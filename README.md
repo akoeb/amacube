@@ -47,11 +47,12 @@ INSERT INTO policy (id, policy_name,
 
 ## To Do
 Pretty much everything needs still to be done...
-* create a dummy plugin that shows an empty settings page
+* create a dummy plugin that shows an empty settings page - DONE
 * add amavis settings to the dummy page
 * make the dummy page check the settings on save
 * make the dummy page save the settings to the amavis database on save
 * make the page insert the user (instead of update) if he has no db record in users yet
+* now that the functionality is working, add localization
 * add quarantine mode to amavis sql
 * create a dummy manage-quarantine page on the main menu
 * make the quarantine page read the quarantines from sql
