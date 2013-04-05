@@ -59,6 +59,14 @@ Pretty much everything needs still to be done...
 * add functions to delete or release mails from quarantine
 * add functions to whitelist/blacklist emails on the settings page
 
+## notes
+* create configure object on page load, required param for the constructor is username
+* the object loads default values from config file
+* the object can overwrite the settings from the database or they are set manually
+* if the page is loaded with POST params: write all the POST params to the object, then call a save method that writes back to DB
+* if the page is without POST params: try from database, if it fails load default and set boolean that the user has no record in DB yet
+* if the user had no DB record, display a message that the user will be created 
+
 ## Version
 
 0.0
