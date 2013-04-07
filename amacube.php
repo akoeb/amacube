@@ -30,6 +30,7 @@ class amacube extends rcube_plugin
 
         // register an action to initialize our settings page
         $this->register_action('plugin.amacube', array($this, 'init_settings'));
+        $this->register_action('plugin.amacube-save', array($this, 'save_settings'));
         $this->include_script('amacube.js');
 
     }
@@ -238,6 +239,89 @@ class amacube extends rcube_plugin
 
     }
 
+
+    function save()
+    {
+        $this->register_handler('plugin.body', array($this, 'settings_form'));
+        rcmail::get_instance()->output->set_pagetitle($this->gettext('amavissettings'));
+        
+        // et the post vars
+        $activate_spam_check = get_input_value('_activate_spam_check', RCUBE_INPUT_POST, true);
+        $activate_virus_check = get_input_value('_activate_virus_check', RCUBE_INPUT_POST, true);
+        $activate_spam_quarantine = get_input_value('_activate_spam_quarantine', RCUBE_INPUT_POST, true);
+        $activate_virus_quarantine = get_input_value('_activate_virus_quarantine', RCUBE_INPUT_POST, true);
+
+        $spam_tag2_level = get_input_value('_spam_tag2_level', RCUBE_INPUT_POST, true);
+        $spam_kill_level = get_input_value('_spam_kill_level', RCUBE_INPUT_POST, true);
+
+
+        // verify the integer post params:
+        $error = false;
+        if (! is_numeric($spam_tag2_level) || $spam_tag2_level < -20 || $spam_tag2_level > 20) {
+            $rcmail->output->command('display_message', $this->gettext('spam_tag2_level'), 'error');
+            $error = true;
+        }
+        if(! is_numeric($spam_kill_level) || $spam_kill_level < -20 || $spam_kill_level > 20) {
+            $rcmail->output->command('display_message', $this->gettext('spam_kill_level'), 'error');
+            $error = true;
+        }
+                  
+        if(! $error) {
+            // new storage object
+            include_once('AmavisSettings.php');
+            $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
+    
+            // now overwrite the new settings:
+            if($activate_spam_check) {
+                $this->storage->policy_settings['spam_lover'] = false;
+            }
+            else {
+                $this->storage->policy_settings['spam_lover'] = true;
+            }
+            if($activate_virus_check) {
+                $this->storage->policy_settings['virus_lover'] = false;
+            }
+            else {
+                $this->storage->policy_settings['virus_lover'] = true;
+            }
+            if($activate_spam_quarantine) {
+                $this->storage->policy_settings['spam_quarantine_to'] = true;
+            }
+            else {
+                $this->storage->policy_settings['spam_quarantine_to'] = false;
+            }
+            if($activate_virus_quarantine) {
+                $this->storage->policy_settings['virus_quarantine_to'] = true;
+            }
+            else {
+                $this->storage->policy_settings['virus_quarantine_to'] = false;
+            }
+            if($spam_tag2_level) {
+                $this->storage->policy_settings['spam_tag2_level'] = $spam_tag2_level;
+            }
+            if($spam_kill_level) {
+                $this->storage->policy_settings['spam_kill_level'] = $spam_kill_level;
+            }
+    
+            // and store the settings:
+            $write_error = $this->storage->write_to_db();
+    
+            // error check
+            if($write_error) {
+                $rcmail->output->command('display_message', $this->gettext('write_error'), 'error');
+                $rcmail->output->command('display_message', $write_error, 'error');
+            }
+            else {
+                // success message and done
+                $rcmail->output->command('display_message', $this->gettext('successfullysaved'), 'confirmation');
+            }
+        }
+        // and send:
+        $rcmail->output->send('plugin');
+
+    }
+
+    // CONVENIENCE METHODS
     // This bloody html_checkbox class will always return checkboxes that are "checked"
     // I did not figure out how to prevent that $$*@@!!
     // so I used html::tag instead...

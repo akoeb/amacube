@@ -90,6 +90,11 @@ class AmavisSettings
         // set the DB connection config
         $this->db_config = $db_config;
 
+        // This plugin assumes the the username equals the email address we want to 
+        // have amavis checking for
+        $rcmail = rcmail::get_instance();
+        $this->user_email = $rcmail->user->data['username'];
+
         // read everything from db if we have records there
         $this->read_from_db();
     }
@@ -280,39 +285,16 @@ class AmavisSettings
             AND users.email = ? ';
 
         // prepare statement and execute
-        $rcmail = rcmail::get_instance();
-        $res = $this->db_conn->query($query, $rcmail->user->data['username']);
+        $res = $this->db_conn->query($query, $this->user_email);
 
         // write the first result line to settings array
         if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
             // read all keys of policy_settings array
             foreach ($this->policy_settings as $key => $value) {
-                // the boolean settings are stored as Y/N or null in the database
-                if(in_array($key, self::$boolean_settings)) {
-                    if (!empty($res_array[$key]) && $res_array[$key] == 'Y') {
-                        $this->policy_settings[$key] = true;
-                    }
-                    else {
-                        $this->policy_settings[$key] = false;
-                    }
-                }
-                // special mapping for the two quarantine settings we use:
-                elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
-                    if (!empty($res_array[$key]) && $res_array[$key] == 'sql:') {
-                        $this->policy_settings[$key] = true;
-                    }
-                    else {
-                        $this->policy_settings[$key] = false;
-                    }
-                }
-                // all other settings do not require mapping
-                else {
-                    $this->policy_settings[$key] = $value;
-                }
+                $this->policy_setting[$key] = $this->map_from_db($key, $res_array[$key]);
             }
             $this->user_pk = $res_array['user_id'];
             $this->priority = $res_array['priority'];
-            $this->user_email = $res_array['email'];
             $this->fullname = $res_array['fullname'];
             $this->policy_pk = $res_array['id'];
             $this->policy_name = $res_array['policy_name'];
@@ -320,9 +302,77 @@ class AmavisSettings
 
     }
     // write settings back to database
+    // FIXME: this method must return an error string in casesomething fails
     function write_to_db()
     {
+        if (! is_resource($this->db_conn)) {
+            $this->init_db();
+        }
+        $query = ''; // store the mysql query
+        $query_params = array();
 
+        // if we have a primary key, the row exists already in the database
+        if(! empty($this->policy_pk)) {
+            $query = 'UPDATE policy SET ';
+            $keys = array_keys($this->policy_settings);
+            $max = sizeof($keys);
+            for ($i = 0; $i < $max; $i++) {
+                $query .= $keys[$i] .' = ? ';
+                array_push($query_params, $this->map_to_db($key, $key[$i]);
+                if($i < $max - 1 ) {
+                    $query .= ', ';
+                }
+            }
+            $query .= ' WHERE id = ? ';
+            array_push($query_params, $this->policy_pk);
+        }
+        // no PK, insert
+        else {
+            // we insert the policy row first, the user row comes later
+            $keys = array_keys($this->policy_settings);
+            $query = 'INSERT INTO policy (';
+            $query .= implode(',', $keys);
+            $query .= ') VALUES (';
+            for($i = 0; $i < $max; $i++) {
+                $query .= '?';
+                if($i < $max - 1 ) {
+                    $query .= ', ';
+                }
+            }
+            foreach($keys as $k => $v) {
+                array_push($query_params, $this->map_to_db($k, $v);
+            }
+        }
+        $res = $this->db_conn->query($query, $query_params);
+        // TODO: error check
+
+        // in case this was an insert, read policy_pk and insert user as well if needed 
+        if(empty($this->policy_pk)) {
+            $this->policy_pk = $this->db_conn->lastInsertID();
+            // TODO: error check
+            
+            // now that we have the policy pk, we check 
+            // whether we need to insert or update the user as well
+            $res = $this->db_conn->query(
+                'SELECT id from users where email = ? ', 
+                $this->user_email);
+
+            if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
+                // we need to update:
+                $this->user_pk = $res_array['id'];
+                $res2 = $this->db_conn->query(
+                    'UPDATE users set policy_id = ? WHERE id = ?',
+                    $this->policy_pk, $this->user_pk);
+                // TODO: error check
+            }
+            else {
+                // INSERT user as well
+                $res2 = $this->db_conn->query(
+                    'INSERT INTO users (policy_id, email) VALUES (?,?))'
+                    $this->policy_pk, $this->user_email);
+                // TODO: error check
+            }
+        }
     }
 
 
@@ -359,6 +409,59 @@ class AmavisSettings
             return true;
         }
         return false;
+    }
+
+    function map_to_db($key, $value)
+    {                
+        // the boolean settings are stored as Y/N or null in the database
+        if(in_array($key, self::$boolean_settings)) {
+            if ($value) {
+                return 'Y';
+            }
+            else {
+                return 'N';
+            }
+        }
+        // special mapping for the two quarantine settings we use:
+        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
+            if ($value) {
+                return 'sql:';
+            }
+            else {
+                return null;
+            }
+        }
+        // all other settings do not require mapping
+        else {
+            return $value;
+        }
+
+    }
+
+    function map_from_db($key, $value)
+    {
+        // the boolean settings are stored as Y/N or null in the database
+        if(in_array($key, self::$boolean_settings)) {
+            if (!empty($value) && $value == 'Y') {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        // special mapping for the two quarantine settings we use:
+        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
+            if (!empty($value) && $value == 'sql:') {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        // all other settings do not require mapping
+        else {
+            return $value;
+        }
     }
 }
 ?>
