@@ -2,15 +2,15 @@
 class AmavisSettings
 {
     // USER SETTINGS
-    private $user_pk; // primary key for the user record
+    public $user_pk; // primary key for the user record
     private $priority = 7; // we do not change the amavis default for that
-    private $user_email; // email address of the user
-    private $fullname; // Full Name of the user, for reference, Amavis does not use that  
+    public $user_email; // email address of the user
+    public $fullname; // Full Name of the user, for reference, Amavis does not use that  
 
     // POLICY SETTINGS
-    private $policy_pk; // primary key of the policy record
-    private $policy_name; // Name of the policy, for reference, Amavis does not use that
-    private $policy_settings = array(
+    public $policy_pk; // primary key of the policy record
+    public $policy_name; // Name of the policy, for reference, Amavis does not use that
+    public $policy_settings = array(
         'virus_lover' => false,         // bool
         'spam_lover' => false,          // bool
         'unchecked_lover' => false,     // bool
@@ -26,16 +26,31 @@ class AmavisSettings
         'spam_tag3_level' => 12,        // float
         'spam_kill_level' => 12,        // float
         'spam_dsn_cutoff_level' => 12,  // float
-        'spam_quarantine_cutoff_level' => 20, // float
+        'spam_quarantine_cutoff_level' => 50, // float
  
-        'virus_quarantine_to' => '',        // later
-        'spam_quarantine_to' => '',         // later
-        'banned_quarantine_to' => '',       // later
-        'unchecked_quarantine_to' => '',    // later
-        'bad_header_quarantine_to' => '',   // later
-        'clean_quarantine_to' => '',        // later
-        'archive_quarantine_to' => '',      // later
+        'virus_quarantine_to' => '',    // string 'sql:', but treated as boolean
+        'spam_quarantine_to' => '',     // string 'sql:', but treated as boolean
+        'banned_quarantine_to' => '',       // unused
+        'unchecked_quarantine_to' => '',    // unused
+        'bad_header_quarantine_to' => '',   // unused
+        'clean_quarantine_to' => '',        // unused
+        'archive_quarantine_to' => '',      // unused
     );
+
+    // class variables(static), the same in all instances:
+    private static $boolean_settings = array(
+            'virus_lover',
+            'spam_lover',
+            'unchecked_lover',
+            'banned_files_lover',
+            'bad_header_lover',
+            'bypass_virus_checks',
+            'bypass_spam_checks',
+            'bypass_banned_checks',
+            'bypass_header_checks',
+            'spam_modifies_subj',
+            );
+
     /* 
     The following settings are unused, I added the lines for later implementation if needed
 
@@ -70,10 +85,9 @@ class AmavisSettings
 
 
     // constructor
-    function init($email, $db_config)
+    function __construct($db_config)
     {
-        // set the obligatory email and DB connection config
-        $this->user_email = $email;
+        // set the DB connection config
         $this->db_config = $db_config;
 
         // read everything from db if we have records there
@@ -183,19 +197,27 @@ class AmavisSettings
             array_push($errors, 'spam_quarantine_cutoff_level');
         }
 
-        // FIXME:
+        if(empty($array['virus_quarantine_to']) ||
+           ! is_bool($array['virus_quarantine_to']))
+        {
+            array_push($errors, 'virus_quarantine_to');
+        }
+
+        if(empty($array['spam_quarantine_to']) ||
+           ! is_bool($array['spam_quarantine_to']))
+        {
+            array_push($errors, 'spam_quarantine_to');
+        }
+
+
+
         // make sure the array does not contain any other keys
-
-        /* TODO
-        'virus_quarantine_to' => '',        // later
-        'spam_quarantine_to' => '',         // later       
-        'banned_quarantine_to' => '',       // later     
-        'unchecked_quarantine_to' => '',    // later  
-        'bad_header_quarantine_to' => '',   // later 
-        'clean_quarantine_to' => '',        // later      
-        'archive_quarantine_to' => '',      // later    
-        */
-
+        foreach($array as $key => $value) {
+            if (! array_key_exists($key, $this->policy_settings)) {
+                // unkonwn key found
+                array_push($errors, 'unknown:'.$key);
+            }
+        }
 
         // return if error found:
         if(! empty ($error)) {
@@ -220,35 +242,123 @@ class AmavisSettings
     // initialize the database connection
     function init_db()
     {
+        // initialize a persistent DB connection
+        if (!$this->db_conn) {
+            // pre 0.9
+            if (!class_exists('rcube_db')) {
+                $this->db_conn = new rcube_mdb2($this->db_config, '', TRUE);
+            } 
+            // version 0.9
+            else {
+                $this->db_conn = rcube_db::factory($this->db_config, '', TRUE);
+            }
 
+        }
+        $this->db_conn->db_connect('w');
+
+        // check DB connections and exit on failure
+        if ($err_str = $this->db_conn->is_error()) {
+            raise_error(array(
+            'code' => 603,
+            'type' => 'db',
+            'message' => $err_str), true, true);
+        }
     }
 
     // read amavis settings from database
     function read_from_db() 
     {
-        if (! is_resource($db_conn)) {
+        if (! is_resource($this->db_conn)) {
             $this->init_db();
         }
 
         // check whether we have a db connection
-        $query = ' SELECT *
+        $query = 'SELECT users.id as user_id, users.priority, users.email, users.fullname, 
+                         policy.*
             FROM users, policy
             WHERE users.policy_id = policy.id 
             AND users.email = ? ';
 
-        // prepare statement
+        // prepare statement and execute
+        $rcmail = rcmail::get_instance();
+        $res = $this->db_conn->query($query, $rcmail->user->data['username']);
 
-        // execute
-
-        // write to settings array
-        $this->policy_settings[''] = $result[''];
-        ... 
+        // write the first result line to settings array
+        if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
+            // read all keys of policy_settings array
+            foreach ($this->policy_settings as $key => $value) {
+                // the boolean settings are stored as Y/N or null in the database
+                if(in_array($key, self::$boolean_settings)) {
+                    if (!empty($res_array[$key]) && $res_array[$key] == 'Y') {
+                        $this->policy_settings[$key] = true;
+                    }
+                    else {
+                        $this->policy_settings[$key] = false;
+                    }
+                }
+                // special mapping for the two quarantine settings we use:
+                elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
+                    if (!empty($res_array[$key]) && $res_array[$key] == 'sql:') {
+                        $this->policy_settings[$key] = true;
+                    }
+                    else {
+                        $this->policy_settings[$key] = false;
+                    }
+                }
+                // all other settings do not require mapping
+                else {
+                    $this->policy_settings[$key] = $value;
+                }
+            }
+            $this->user_pk = $res_array['user_id'];
+            $this->priority = $res_array['priority'];
+            $this->user_email = $res_array['email'];
+            $this->fullname = $res_array['fullname'];
+            $this->policy_pk = $res_array['id'];
+            $this->policy_name = $res_array['policy_name'];
+        }
 
     }
     // write settings back to database
     function write_to_db()
     {
 
+    }
+
+
+    // CONVENIENCE METHODS:
+    // set the checkbox checked mark if user is a spam lover
+    function is_spam_check_activated_checkbox()
+    {
+        if ($this->policy_settings['spam_lover']) {
+            // true means unchecked activation...
+            return false;
+        }
+        return true;
+    }
+    // set the checkbox checked mark if user is a virus lover
+    function is_virus_check_activated_checkbox()
+    {
+        if ($this->policy_settings['virus_lover']) {
+            // true means unchecked activation...
+            return false;
+        }
+        return true;
+    }
+    function is_spam_quarantine_activated_checkbox()
+    {
+        if($this->policy_settings['spam_quarantine_to']) {
+            return true;
+        }
+        return false;
+    }
+
+    function is_virus_quarantine_activated_checkbox()
+    {
+        if($this->policy_settings['virus_quarantine_to']) {
+            return true;
+        }
+        return false;
     }
 }
 ?>
