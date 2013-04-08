@@ -50,11 +50,11 @@ Pretty much everything needs still to be done...
 * create a dummy plugin that shows an empty settings page - DONE
 * add amavis settings to the dummy page DONE
 * add quarantine mode to amavis sql DONE
-* add save handler
-* make the dummy page check the settings on save
-* make the dummy page save the settings to the amavis database on save
-* make the page insert the user (instead of update) if he has no db record in users yet
-* now that the functionality is working, add localization
+* add save handler DONE
+* make the dummy page check the settings on save DONE
+* make the dummy page save the settings to the amavis database on save DONE
+* make the page insert the user (instead of update) if he has no db record in users yet DONE
+* now that the functionality is working, add localization and eye candy
 * create a dummy manage-quarantine page on the main menu
 * make the quarantine page read the quarantines from sql
 * add functions to delete or release mails from quarantine

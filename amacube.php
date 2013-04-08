@@ -55,15 +55,31 @@ class amacube extends rcube_plugin
         include_once('AmavisSettings.php');
         $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
 
+
         // create a message box stating that the users values were filled from default
         // if no database record was found:
-        //FIXME
+        if(! $this->storage->policy_pk) {
+            $rcmail->output->command('display_message', $this->gettext('policy_default_message'), 'warning');
+        }
 
-
+        // add some labels to client
+        $rcmail->output->add_label(
+                'amacube.activate_spam_check',
+                'amacube.activate_virus_check',
+                'amacube.activate_spam_quarantine',
+                'amacube.activate_virus_quarantine',
+                'amacube.spam_tag2_level',
+                'amacube.spam_kill_level'
+        );
 
         // create a table to hold form content:
         $table = new html_table(array('cols' => 3, 'cellpadding' => 3));
 
+        //DEBUG
+        $table->add(array('colspan' => '3'), html::tag(
+            'h4', null, Q("DEBUG: user: ".$this->storage->user_pk.", policy: ".$this->storage->policy_pk)));
+        
+        
         // heading for first form section:
         $table->add(array('colspan' => '3'), html::tag(
             'h4', null, Q($this->gettext('activate')))
@@ -149,7 +165,7 @@ class amacube extends rcube_plugin
         # input box for sa_tag2_level:
         $table->add('',$this->_show_inputfield( 
             'spam_tag2_level',
-            $this->storage->policy_settings['spam_tag2_level']
+            $this->storage->policy_setting['spam_tag2_level']
         ));
         $table->add('title', html::label(
             'spam_tag2_level', Q($this->gettext('spam_tag2_level'))
@@ -164,7 +180,7 @@ class amacube extends rcube_plugin
         # input box for sa_kill_level:
         $table->add('',$this->_show_inputfield( 
             'spam_kill_level',
-            $this->storage->policy_settings['spam_kill_level']
+            $this->storage->policy_setting['spam_kill_level']
         ));
         $table->add('title', html::label(
             'spam_kill_level', Q($this->gettext('spam_kill_level'))
@@ -188,51 +204,13 @@ class amacube extends rcube_plugin
                 'label' => 'save'
         )));
         
-
-/*
-        $table->add('title', 'ID');
-        $table->add('', Q($user->ID));
-        
-        $table->add('title', Q($this->gettext('username')));
-        $table->add('', Q($user->data['username']));
-        
-        $table->add('title', Q($this->gettext('server')));
-        $table->add('', Q($user->data['mail_host']));
-        
-        $table->add('title', Q($this->gettext('created')));
-        $table->add('', Q($user->data['created']));
-        
-        $table->add('title', Q($this->gettext('lastlogin')));
-        $table->add('', Q($user->data['last_login']));
-        
-        $identity = $user->get_identity();
-        $table->add('title', Q($this->gettext('defaultidentity')));
-        $table->add('', Q($identity['name'] . ' <' . $identity['email'] . '>'));
-        
-        //if the user has no database entry yet, the user_pk field is empty:
-        if(! $this->storage->user_pk) {
-             $table->add('title', Q('NO DATABASE ENTRY YET, USING DEFAULT VALUES!!'));
-        }
-        else {
-            $table->add('title', Q($this->gettext('users_pk')));
-            $table->add('', Q($this->storage->user_pk));
-            $table->add('title', Q($this->gettext('policy_pk')));
-            $table->add('', Q($this->storage->policy_pk));
-            $table->add('title', Q($this->gettext('email')));
-            $table->add('', Q($this->storage->user_email));
-            $table->add('title', Q($this->gettext('settings')));
-            $settings = '';
-            foreach ($this->storage->policy_settings as $key => $value) {
-                $settings .= $key . ' => '.$value ."\n";
-            }
-            $table->add('', Q($settings));
-        }
-  */     
-        // do we need that?
-        //$rcmail->output->add_gui_object('amacubeform', 'amacube-form');
+    
+        // register the form to the client:
+        $rcmail->output->add_gui_object('amacubeform', 'amacubeform');
+        // and return the page including form tags:
         return $rcmail->output->form_tag(array(
-                    'id' => 'amacube-form',
-                    'name' => 'amacube-form',
+                    'id' => 'amacubeform',
+                    'name' => 'amacubeform',
                     'method' => 'post',
                     'action' => './?_task=settings&_action=plugin.amacube-save',
                     ), $table->show());
@@ -240,10 +218,11 @@ class amacube extends rcube_plugin
     }
 
 
-    function save()
+    function save_settings()
     {
         $this->register_handler('plugin.body', array($this, 'settings_form'));
-        rcmail::get_instance()->output->set_pagetitle($this->gettext('amavissettings'));
+        $rcmail = rcmail::get_instance();
+        $rcmail->output->set_pagetitle($this->gettext('amavissettings'));
         
         // et the post vars
         $activate_spam_check = get_input_value('_activate_spam_check', RCUBE_INPUT_POST, true);
@@ -253,7 +232,6 @@ class amacube extends rcube_plugin
 
         $spam_tag2_level = get_input_value('_spam_tag2_level', RCUBE_INPUT_POST, true);
         $spam_kill_level = get_input_value('_spam_kill_level', RCUBE_INPUT_POST, true);
-
 
         // verify the integer post params:
         $error = false;
@@ -267,45 +245,54 @@ class amacube extends rcube_plugin
         }
                   
         if(! $error) {
+            $write_error = '';
+            
             // new storage object
             include_once('AmavisSettings.php');
             $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
     
             // now overwrite the new settings:
-            if($activate_spam_check) {
-                $this->storage->policy_settings['spam_lover'] = false;
+            if(!empty($activate_spam_check)) {
+                $this->storage->policy_setting['spam_lover'] = false;
             }
             else {
-                $this->storage->policy_settings['spam_lover'] = true;
+                $this->storage->policy_setting['spam_lover'] = true;
             }
-            if($activate_virus_check) {
-                $this->storage->policy_settings['virus_lover'] = false;
-            }
-            else {
-                $this->storage->policy_settings['virus_lover'] = true;
-            }
-            if($activate_spam_quarantine) {
-                $this->storage->policy_settings['spam_quarantine_to'] = true;
+            if(!empty($activate_virus_check)) {
+                $this->storage->policy_setting['virus_lover'] = false;
             }
             else {
-                $this->storage->policy_settings['spam_quarantine_to'] = false;
+                $this->storage->policy_setting['virus_lover'] = true;
             }
-            if($activate_virus_quarantine) {
-                $this->storage->policy_settings['virus_quarantine_to'] = true;
+            if(! empty($activate_spam_quarantine)) {
+                $this->storage->policy_setting['spam_quarantine_to'] = true;
             }
             else {
-                $this->storage->policy_settings['virus_quarantine_to'] = false;
+                $this->storage->policy_setting['spam_quarantine_to'] = false;
+            }
+            if(! empty($activate_virus_quarantine)) {
+                $this->storage->policy_setting['virus_quarantine_to'] = true;
+            }
+            else {
+                $this->storage->policy_setting['virus_quarantine_to'] = false;
             }
             if($spam_tag2_level) {
-                $this->storage->policy_settings['spam_tag2_level'] = $spam_tag2_level;
+                $this->storage->policy_setting['spam_tag2_level'] = $spam_tag2_level;
             }
             if($spam_kill_level) {
-                $this->storage->policy_settings['spam_kill_level'] = $spam_kill_level;
+                $this->storage->policy_setting['spam_kill_level'] = $spam_kill_level;
             }
-    
-            // and store the settings:
-            $write_error = $this->storage->write_to_db();
-    
+   
+            // check whether resulting property is syntactically correct:
+            $verify = $this->storage->verify_policy_array();
+            if(isset($verify) && is_array($verify)) {
+                //  error check: 
+                $rcmail->output->command('display_message', $this->gettext('verification_error'), 'error');
+            }
+            else {
+                // and store the settings:
+                $write_error = $this->storage->write_to_db();
+            }
             // error check
             if($write_error) {
                 $rcmail->output->command('display_message', $this->gettext('write_error'), 'error');

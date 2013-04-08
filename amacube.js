@@ -9,5 +9,11 @@ if (window.rcmail) {
         // add button and register command
         rcmail.add_element(tab, 'tabs');
         rcmail.register_command('plugin.amacube', function(){ rcmail.goto_url('plugin.amacube') }, true);
+
+        rcmail.register_command('plugin.amacube-save', function() { 
+            // client input verification here
+            rcmail.gui_objects.amacubeform.submit();
+        }, true);
+
    });
 }

@@ -10,7 +10,7 @@ class AmavisSettings
     // POLICY SETTINGS
     public $policy_pk; // primary key of the policy record
     public $policy_name; // Name of the policy, for reference, Amavis does not use that
-    public $policy_settings = array(
+    public $policy_setting = array(
         'virus_lover' => false,         // bool
         'spam_lover' => false,          // bool
         'unchecked_lover' => false,     // bool
@@ -25,11 +25,11 @@ class AmavisSettings
         'spam_tag2_level' => 6,         // float
         'spam_tag3_level' => 12,        // float
         'spam_kill_level' => 12,        // float
-        'spam_dsn_cutoff_level' => 12,  // float
-        'spam_quarantine_cutoff_level' => 50, // float
+        'spam_dsn_cutoff_level' => 20,  // float
+        'spam_quarantine_cutoff_level' => 20, // float
  
-        'virus_quarantine_to' => '',    // string 'sql:', but treated as boolean
-        'spam_quarantine_to' => '',     // string 'sql:', but treated as boolean
+        'virus_quarantine_to' => true,    // string 'sql:', but treated as boolean
+        'spam_quarantine_to' => false,     // string 'sql:', but treated as boolean
         'banned_quarantine_to' => '',       // unused
         'unchecked_quarantine_to' => '',    // unused
         'bad_header_quarantine_to' => '',   // unused
@@ -87,6 +87,7 @@ class AmavisSettings
     // constructor
     function __construct($db_config)
     {
+
         // set the DB connection config
         $this->db_config = $db_config;
 
@@ -97,119 +98,112 @@ class AmavisSettings
 
         // read everything from db if we have records there
         $this->read_from_db();
+
+        $verify = $this->verify_policy_array();
+        if(isset($verify) && is_array($verify)) {
+            // TODO: something is dead wrong, database settngs do not verify
+            error_log("AMACUBE: verification of database settings failed...".implode(',',$verify));
+        }
     }
     
     // method to verify the policy settings are correct
-    function verify_policy_array($array)
+    function verify_policy_array($array = null)
     {
         // store the errors
         $errors = array();
 
+        // check this-setting if no array was handed in
+        if(! isset ($array) || !is_array($array) || count($array) == 0) {
+            $array = $this->policy_setting;
+        }
+
         // check the booleans:
-        if(empty($array['virus_lover']) || 
-           ! is_bool($array['virus_lover']))
+        if(is_bool($array['virus_lover']) === false)
         {
             array_push($errors, 'virus_lover');
         }
-        if(empty($array['spam_lover']) ||
-           ! is_bool($array['spam_lover']))
+        if(is_bool($array['spam_lover']) === false)
         {
             array_push($errors, 'spam_lover');
         }
 
-        if(empty($array['unchecked_lover']) ||
-           ! is_bool($array['unchecked_lover']))
+        if(is_bool($array['unchecked_lover']) === false)
         {
             array_push($errors, 'unchecked_lover');
         }
 
-        if(empty($array['banned_files_lover']) ||
-           ! is_bool($array['banned_files_lover']))
+        if(is_bool($array['banned_files_lover']) === false)
         {
             array_push($errors, 'banned_files_lover');
         }
 
-        if(empty($array['bad_header_lover']) ||
-           ! is_bool($array['bad_header_lover']))
+        if(is_bool($array['bad_header_lover']) === false)
         {
             array_push($errors, 'bad_header_lover');
         }
 
-        if(empty($array['bypass_virus_checks']) ||
-           ! is_bool($array['bypass_virus_checks']))
+        if(is_bool($array['bypass_virus_checks']) === false)
         {
             array_push($errors, 'bypass_virus_checks');
         }
 
-        if(empty($array['bypass_spam_checks']) ||
-           ! is_bool($array['bypass_spam_checks']))
+        if(is_bool($array['bypass_spam_checks']) === false)
         {
             array_push($errors, 'bypass_spam_checks');
         }
 
-        if(empty($array['bypass_banned_checks']) ||
-           ! is_bool($array['bypass_banned_checks']))
+        if(is_bool($array['bypass_banned_checks']) === false)
         {
             array_push($errors, 'bypass_banned_checks');
         }
 
-        if(empty($array['bypass_header_checks']) ||
-           ! is_bool($array['bypass_header_checks']))
+        if(is_bool($array['bypass_header_checks']) === false)
         {
             array_push($errors, 'bypass_header_checks');
         }
 
-        if(empty($array['spam_modifies_subj']) ||
-           ! is_bool($array['spam_modifies_subj']))
+        if(is_bool($array['spam_modifies_subj']) === false)
         {
             array_push($errors, 'spam_modifies_subj');
         }
 
         // check the floats:
-        if(empty($array['spam_tag_level']) ||
-           ! is_numeric($array['spam_tag_level']))
+        if(is_numeric($array['spam_tag_level']) === false)
         {
-            array_push($errors, 'spam_tag_level');
+            array_push($errors, 'spam_tag_level:'.$array['spam_tag_level']."___".gettype($array['spam_tag_level']));
         }
 
-        if(empty($array['spam_tag2_level']) ||
-           ! is_numeric($array['spam_tag2_level']))
+        if(is_numeric($array['spam_tag2_level']) === false)
         {
             array_push($errors, 'spam_tag2_level');
         }
 
-        if(empty($array['spam_tag3_level']) ||
-           ! is_numeric($array['spam_tag3_level']))
+        if(is_numeric($array['spam_tag3_level']) === false)
         {
             array_push($errors, 'spam_tag3_level');
         }
         
-        if(empty($array['spam_kill_level']) ||
-           ! is_numeric($array['spam_kill_level']))
+        if(is_numeric($array['spam_kill_level']) === false)
         {
             array_push($errors, 'spam_kill_level');
         }
         
-        if(empty($array['spam_dsn_cutoff_level']) ||
-           ! is_numeric($array['spam_dsn_cutoff_level']))
+        if(is_numeric($array['spam_dsn_cutoff_level']) === false)
         {
             array_push($errors, 'spam_dsn_cutoff_level');
         }
         
-        if(empty($array['spam_quarantine_cutoff_level']) ||
-           ! is_numeric($array['spam_quarantine_cutoff_level']))
+        if(is_numeric($array['spam_quarantine_cutoff_level']) === false)
         {
             array_push($errors, 'spam_quarantine_cutoff_level');
         }
 
-        if(empty($array['virus_quarantine_to']) ||
-           ! is_bool($array['virus_quarantine_to']))
+        if(is_bool($array['virus_quarantine_to']) === false)
         {
             array_push($errors, 'virus_quarantine_to');
         }
 
-        if(empty($array['spam_quarantine_to']) ||
-           ! is_bool($array['spam_quarantine_to']))
+        if(is_bool($array['spam_quarantine_to']) === false)
         {
             array_push($errors, 'spam_quarantine_to');
         }
@@ -218,15 +212,15 @@ class AmavisSettings
 
         // make sure the array does not contain any other keys
         foreach($array as $key => $value) {
-            if (! array_key_exists($key, $this->policy_settings)) {
+            if (! array_key_exists($key, $this->policy_setting)) {
                 // unkonwn key found
                 array_push($errors, 'unknown:'.$key);
             }
         }
 
         // return if error found:
-        if(! empty ($error)) {
-            return $error;
+        if(! empty ($errors)) {
+            return $errors;
         }
     }
 
@@ -241,7 +235,7 @@ class AmavisSettings
             return $error;
         }
         // and set write to instance variable
-        $this->policy_settings = $array;
+        $this->policy_setting = $array;
     }
 
     // initialize the database connection
@@ -286,11 +280,12 @@ class AmavisSettings
 
         // prepare statement and execute
         $res = $this->db_conn->query($query, $this->user_email);
+        //TODO: error check
 
         // write the first result line to settings array
         if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
-            // read all keys of policy_settings array
-            foreach ($this->policy_settings as $key => $value) {
+            // read all keys of policy_setting array
+            foreach ($this->policy_setting as $key => $value) {
                 $this->policy_setting[$key] = $this->map_from_db($key, $res_array[$key]);
             }
             $this->user_pk = $res_array['user_id'];
@@ -311,14 +306,17 @@ class AmavisSettings
         $query = ''; // store the mysql query
         $query_params = array();
 
+        // DEBUG db
+        $this->db_conn->set_debug(TRUE);
+
         // if we have a primary key, the row exists already in the database
         if(! empty($this->policy_pk)) {
             $query = 'UPDATE policy SET ';
-            $keys = array_keys($this->policy_settings);
+            $keys = array_keys($this->policy_setting);
             $max = sizeof($keys);
             for ($i = 0; $i < $max; $i++) {
                 $query .= $keys[$i] .' = ? ';
-                array_push($query_params, $this->map_to_db($key, $key[$i]);
+                array_push($query_params, $this->map_to_db($keys[$i], $this->policy_setting[$keys[$i]]));
                 if($i < $max - 1 ) {
                     $query .= ', ';
                 }
@@ -329,7 +327,9 @@ class AmavisSettings
         // no PK, insert
         else {
             // we insert the policy row first, the user row comes later
-            $keys = array_keys($this->policy_settings);
+            $keys = array_keys($this->policy_setting);
+            array_push($keys, 'policy_name');
+            $max = sizeof($keys);
             $query = 'INSERT INTO policy (';
             $query .= implode(',', $keys);
             $query .= ') VALUES (';
@@ -339,23 +339,42 @@ class AmavisSettings
                     $query .= ', ';
                 }
             }
-            foreach($keys as $k => $v) {
-                array_push($query_params, $this->map_to_db($k, $v);
+            $query .= ')';
+            foreach($keys as $k) {
+                if($k == 'policy_name') {
+                    array_push($query_params,'policy_user_'.$this->user_email);
+                }
+                else {
+                    array_push($query_params, $this->map_to_db($k,$this->policy_setting[$k]));
+                }
             }
         }
         $res = $this->db_conn->query($query, $query_params);
-        // TODO: error check
+
+        // error check
+        if($this->db_conn->db_error) {
+            return "Error in insert/update policy: ".$this->db_conn->db_error_msg;
+        }
 
         // in case this was an insert, read policy_pk and insert user as well if needed 
         if(empty($this->policy_pk)) {
-            $this->policy_pk = $this->db_conn->lastInsertID();
-            // TODO: error check
-            
+
+            $this->policy_pk = $this->db_conn->insert_id();
+            // error check
+            if(empty($this->policy_pk)) {
+                return "Could not get Primary Key for policy: ".$this->db_conn->db_error_msg;
+            }
+
             // now that we have the policy pk, we check 
             // whether we need to insert or update the user as well
             $res = $this->db_conn->query(
                 'SELECT id from users where email = ? ', 
                 $this->user_email);
+            
+            // error check
+            if($this->db_conn->db_error) {
+                return "Error in checking for user record: ".$this->db_conn->db_error_msg;
+            }
 
             if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
                 // we need to update:
@@ -363,16 +382,20 @@ class AmavisSettings
                 $res2 = $this->db_conn->query(
                     'UPDATE users set policy_id = ? WHERE id = ?',
                     $this->policy_pk, $this->user_pk);
-                // TODO: error check
             }
             else {
                 // INSERT user as well
                 $res2 = $this->db_conn->query(
-                    'INSERT INTO users (policy_id, email) VALUES (?,?))'
+                    'INSERT INTO users (policy_id, email) VALUES (?,?)',
                     $this->policy_pk, $this->user_email);
-                // TODO: error check
+            }
+            //  error check
+            if($this->db_conn->db_error) {
+                return "Error in inserting/updating user record: ".$this->db_conn->db_error_msg;
             }
         }
+        // all good:
+        return null;
     }
 
 
@@ -380,7 +403,7 @@ class AmavisSettings
     // set the checkbox checked mark if user is a spam lover
     function is_spam_check_activated_checkbox()
     {
-        if ($this->policy_settings['spam_lover']) {
+        if ($this->policy_setting['spam_lover']) {
             // true means unchecked activation...
             return false;
         }
@@ -389,7 +412,7 @@ class AmavisSettings
     // set the checkbox checked mark if user is a virus lover
     function is_virus_check_activated_checkbox()
     {
-        if ($this->policy_settings['virus_lover']) {
+        if ($this->policy_setting['virus_lover']) {
             // true means unchecked activation...
             return false;
         }
@@ -397,7 +420,7 @@ class AmavisSettings
     }
     function is_spam_quarantine_activated_checkbox()
     {
-        if($this->policy_settings['spam_quarantine_to']) {
+        if($this->policy_setting['spam_quarantine_to']) {
             return true;
         }
         return false;
@@ -405,7 +428,7 @@ class AmavisSettings
 
     function is_virus_quarantine_activated_checkbox()
     {
-        if($this->policy_settings['virus_quarantine_to']) {
+        if($this->policy_setting['virus_quarantine_to']) {
             return true;
         }
         return false;
@@ -413,55 +436,60 @@ class AmavisSettings
 
     function map_to_db($key, $value)
     {                
+        $retval = null;
+
         // the boolean settings are stored as Y/N or null in the database
         if(in_array($key, self::$boolean_settings)) {
             if ($value) {
-                return 'Y';
+                $retval = 'Y';
             }
             else {
-                return 'N';
+                $retval = 'N';
             }
         }
         // special mapping for the two quarantine settings we use:
         elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
             if ($value) {
-                return 'sql:';
+                $retval = 'sql:';
             }
             else {
-                return null;
+                $retval = null;
             }
         }
         // all other settings do not require mapping
         else {
-            return $value;
+            $retval = $value;
         }
-
+        return $retval;
     }
 
     function map_from_db($key, $value)
     {
+        $retval = null;
+
         // the boolean settings are stored as Y/N or null in the database
         if(in_array($key, self::$boolean_settings)) {
             if (!empty($value) && $value == 'Y') {
-                return true;
+                $retval = true;
             }
             else {
-                return false;
+                $retval = false;
             }
         }
         // special mapping for the two quarantine settings we use:
         elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
             if (!empty($value) && $value == 'sql:') {
-                return true;
+                $retval = true;
             }
             else {
-                return false;
+                $retval = false;
             }
         }
         // all other settings do not require mapping
         else {
-            return $value;
+            $retval = $value;
         }
+        return $retval;
     }
 }
 ?>
