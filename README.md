@@ -1,74 +1,86 @@
-amacube
-=======
+# Amacube
 
 Roundcube plugin to let users control their amavis settings as well as manage quarantined emails.
 
 ## Configurable Settings
-* final_*_destiny
-* tag level
-* tag2 level
-* kill level
-* *_quaranti__to
+
+The user can adjust following settings from the settings task:
+* activate or deactivate spam check for this user
+* activate or deactivate virus check for this user
+* activate or deactivate quarantining of virus emails
+* activate or deactivate quarantining of spam emails
+* activate or deactivate quarantining of banned emails
+* spam tag2 level
+* spam kill level
+
+All Those configuration options apply only to the user, for all other users the sidewide defaults apply.
 
 ## Quarantine
-* if use_quarantine is on, the quarantined mails can be viewed, released or deleted
+
+* The user can view, delete or release quarantined emails through the quarantine button in the task bar
+
+## Notes on the software
+
+* This software is in an early development status, see CHANGELOG. 
+* The plugin assumes that the login name for roundcube is equal to the email address of the user that amavis sees as recipient.
+* Alias email addresses need to be expanded by postfix before amavis sees them, otherwise this plugin only works with the main email addreess, not its aliases
+* The plugin only works if amavis uses a sql database for policy and quarantining, see README.sql and README.sql-mysql of the amavis documentation
+* It is tested only with mysql for now.
+* If a user loads the settings page first time and he has no database record yet, it will be created upon save of the settings.
+* If you find bugs, have comments on the software, want to send patches or have implementation wishes, you are welcome to send them to me, but I won't promise anything.
+* If you find tis software useful and you ever show up in the same geographical location as I am, you are welcome to buy me a beer. ;-)
+
 
 ## Installation
-1. amavis
-* create database amavis;
-* grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<AMAVIS-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
-* create users:
-**  INSERT INTO users VALUES ( 1, 7, 1, '<EMAIL>','<NAME>');
-INSERT INTO policy (id, policy_name,
-    virus_lover, spam_lover, banned_files_lover, bad_header_lover,
-    bypass_virus_checks, bypass_spam_checks, bypass_banned_checks, bypass_header_checks, 
-    spam_modifies_subj, spam_tag_level, spam_tag2_level, spam_kill_level, spam_dsn_cutoff_level
-    ) 
-    VALUES
-    (1, 'default',
-    'N','N','N','N', -- what we love
-    'N','N','N','N', -- what we bypass
-    'N',-999, 6, 12,12
-    );
 
--- jeder user eine policy...
+1. Amavis
+I document here only some specific settings for this plugin, please refer to Amavis documentation for other configuration
+options.
+* Create a Database for amavis in Mysql:
+    SQL> create database amavis;
 
--- später: whitelist/blacklist und quarantine
+* allow access to this database from amavis and roundcube host in Mysql:
+    SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<AMAVIS-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
+    SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<ROUNDCUBE-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
 
-* set amavis database connection:
-** @lookup_sql_dsn = ( ['DBI:mysql:database=amavis;host=<MYSQL-HOST>;port=3306', '<AMAVIS-USER>', '<AMAVIS-PASSWORD>]);
-   @storage_sql_dsn = @lookup_sql_dsn;
+* set amavis database connection in the amavis configuration:
+    @lookup_sql_dsn = ( ['DBI:mysql:database=amavis;host=<MYSQL-HOST>;port=3306', '<AMAVIS-USER>', '<AMAVIS-PASSWORD>]);
+    @storage_sql_dsn = @lookup_sql_dsn;
 
+* for release of quarantined emails
+    # tell amavis to listen on all interfaces:
+    $inet_socket_bind = undef;
+    # The ports amavis needs to listen (10024 for postfix, 9998 for us)
+    $inet_socket_port = [10024, 9998];
+    # new interface policy for posrt 9998
+    $interface_policy{'9998'} = 'AM.PDP-INET';
+    $policy_bank{'AM.PDP-INET'} = {
+      protocol => 'AM.PDP',  # select Amavis policy delegation protocol
+      inet_acl => [qw( 127.0.0.1 [::1] )],  # restrict access to these IP addresses
+      auth_required_release => 1,  # require secret_id for amavisd-release
+    };
 
+2. Amacube Plugin
+* create a directory in your roundcube plugin directory called amacube
+* drop all the files of the plugin into this directory
+* create a amacube/config.inc.php file with mysql and amavis settings filled out correctly. A template with the extension -dist is supplied.
+* add amacube to the $rcmail_config['plugins'] array in roundcubes config/main.inc.php
 
-## Necessary Amavis settings
-* user settings in sql
-* quarantine in sql
+## TODO
 
-## To Do
-Pretty much everything needs still to be done...
-* create a dummy plugin that shows an empty settings page - DONE
-* add amavis settings to the dummy page DONE
-* add quarantine mode to amavis sql DONE
-* add save handler DONE
-* make the dummy page check the settings on save DONE
-* make the dummy page save the settings to the amavis database on save DONE
-* make the page insert the user (instead of update) if he has no db record in users yet DONE
-* now that the functionality is working, add localization and eye candy
-* create a dummy manage-quarantine page on the main menu
-* make the quarantine page read the quarantines from sql
-* add functions to delete or release mails from quarantine
-* add functions to whitelist/blacklist emails on the settings page
-
-## notes
-* create configure object on page load, required param for the constructor is username
-* the object loads default values from config file
-* the object can overwrite the settings from the database or they are set manually
-* if the page is loaded with POST params: write all the POST params to the object, then call a save method that writes back to DB
-* if the page is without POST params: try from database, if it fails load default and set boolean that the user has no record in DB yet
-* if the user had no DB record, display a message that the user will be created 
+This is a uncomplete list of things that need to be done with this plugin
+* pagination in the quarantine list
+* localisation
+* proper error handling (see all those FIXME statements in the code)
+* eye candy
+* lots of help and information texts
 
 ## Version
 
-0.0
+0.1 - initial release, functionally working, but ugly and lacking informational texts
+
+
+## License
+
+GPLv3 - see COPYING file for full license statement
 

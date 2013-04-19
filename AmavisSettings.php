@@ -1,10 +1,22 @@
 <?php
-class AmavisSettings
+/**
+* AmavisSettings - class to load and store Amavis settings in DB
+*/
+
+/*
+This file is part of the amacube Roundcube plugin
+Copyright (C) 2013, Alexander Köb
+
+Licensed under the GNU General Public License version 3. 
+See the COPYING file for a full license statement.          
+
+*/
+include_once('AmavisAbstract.php');
+class AmavisSettings extends AmavisAbstract
 {
     // USER SETTINGS
     public $user_pk; // primary key for the user record
     private $priority = 7; // we do not change the amavis default for that
-    public $user_email; // email address of the user
     public $fullname; // Full Name of the user, for reference, Amavis does not use that  
 
     // POLICY SETTINGS
@@ -28,9 +40,10 @@ class AmavisSettings
         'spam_dsn_cutoff_level' => 20,  // float
         'spam_quarantine_cutoff_level' => 20, // float
  
-        'virus_quarantine_to' => true,    // string 'sql:', but treated as boolean
-        'spam_quarantine_to' => false,     // string 'sql:', but treated as boolean
-        'banned_quarantine_to' => '',       // unused
+        'virus_quarantine_to' => true,      // string 'sql:', but treated as boolean
+        'spam_quarantine_to' => false,      // string 'sql:', but treated as boolean
+        'banned_quarantine_to' => false,    // string 'sql:', but treated as boolean
+
         'unchecked_quarantine_to' => '',    // unused
         'bad_header_quarantine_to' => '',   // unused
         'clean_quarantine_to' => '',        // unused
@@ -78,30 +91,22 @@ class AmavisSettings
     */
 
 
-    // DATABASE STUFF
-    private $db_config; // array with db configuration
-    private $db_conn;   // db connection
-
 
 
     // constructor
     function __construct($db_config)
     {
 
-        // set the DB connection config
-        $this->db_config = $db_config;
-
-        // This plugin assumes the the username equals the email address we want to 
-        // have amavis checking for
-        $rcmail = rcmail::get_instance();
-        $this->user_email = $rcmail->user->data['username'];
-
+        // call constructor of the super class to initialize db connection:
+        parent::__construct($db_config);
+        
         // read everything from db if we have records there
         $this->read_from_db();
 
         $verify = $this->verify_policy_array();
         if(isset($verify) && is_array($verify)) {
             // TODO: something is dead wrong, database settngs do not verify
+            // FiXME: throw error
             error_log("AMACUBE: verification of database settings failed...".implode(',',$verify));
         }
     }
@@ -208,6 +213,10 @@ class AmavisSettings
             array_push($errors, 'spam_quarantine_to');
         }
 
+        if(is_bool($array['banned_quarantine_to']) === false)
+        {
+            array_push($errors, 'banned_quarantine_to');
+        }
 
 
         // make sure the array does not contain any other keys
@@ -236,32 +245,6 @@ class AmavisSettings
         }
         // and set write to instance variable
         $this->policy_setting = $array;
-    }
-
-    // initialize the database connection
-    function init_db()
-    {
-        // initialize a persistent DB connection
-        if (!$this->db_conn) {
-            // pre 0.9
-            if (!class_exists('rcube_db')) {
-                $this->db_conn = new rcube_mdb2($this->db_config, '', TRUE);
-            } 
-            // version 0.9
-            else {
-                $this->db_conn = rcube_db::factory($this->db_config, '', TRUE);
-            }
-
-        }
-        $this->db_conn->db_connect('w');
-
-        // check DB connections and exit on failure
-        if ($err_str = $this->db_conn->is_error()) {
-            raise_error(array(
-            'code' => 603,
-            'type' => 'db',
-            'message' => $err_str), true, true);
-        }
     }
 
     // read amavis settings from database
@@ -297,7 +280,7 @@ class AmavisSettings
 
     }
     // write settings back to database
-    // FIXME: this method must return an error string in casesomething fails
+    // FIXME: this method must return an error string in case something fails
     function write_to_db()
     {
         if (! is_resource($this->db_conn)) {
@@ -400,40 +383,35 @@ class AmavisSettings
 
 
     // CONVENIENCE METHODS:
-    // set the checkbox checked mark if user is a spam lover
-    function is_spam_check_activated_checkbox()
+    
+    // set the checkbox checked mark if user is a NOT spam or virus lover
+    // (the checkbox marks ACTIVATION of the check, DEACTIVATION means user is a *_lover)
+    function is_check_activated_checkbox($type)
     {
-        if ($this->policy_setting['spam_lover']) {
+        if($type !== 'virus' && $type !== 'spam') {
+            //FIXME throw error
+            return false;
+        }
+        elseif ($this->policy_setting[$type.'_lover']) {
             // true means unchecked activation...
             return false;
         }
         return true;
     }
-    // set the checkbox checked mark if user is a virus lover
-    function is_virus_check_activated_checkbox()
+    // set the checkbox checked mark if user has quarantine activated
+    function is_quarantine_activated_checkbox($type)
     {
-        if ($this->policy_setting['virus_lover']) {
-            // true means unchecked activation...
+        if($type !== 'virus' && $type !== 'spam' && $type !== 'banned') {
+            //FIXME throw error
             return false;
         }
-        return true;
-    }
-    function is_spam_quarantine_activated_checkbox()
-    {
-        if($this->policy_setting['spam_quarantine_to']) {
+        elseif($this->policy_setting[$type.'_quarantine_to']) {
             return true;
         }
         return false;
     }
 
-    function is_virus_quarantine_activated_checkbox()
-    {
-        if($this->policy_setting['virus_quarantine_to']) {
-            return true;
-        }
-        return false;
-    }
-
+    // mapping function internal representation - database content
     function map_to_db($key, $value)
     {                
         $retval = null;
@@ -448,7 +426,7 @@ class AmavisSettings
             }
         }
         // special mapping for the two quarantine settings we use:
-        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
+        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to' || $key == 'banned_quarantine_to') {
             if ($value) {
                 $retval = 'sql:';
             }
@@ -463,6 +441,7 @@ class AmavisSettings
         return $retval;
     }
 
+    // mapping function database content - internal representation 
     function map_from_db($key, $value)
     {
         $retval = null;
@@ -477,7 +456,7 @@ class AmavisSettings
             }
         }
         // special mapping for the two quarantine settings we use:
-        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to') {
+        elseif($key == 'spam_quarantine_to' || $key == 'virus_quarantine_to' || $key == 'banned_quarantine_to') {
             if (!empty($value) && $value == 'sql:') {
                 $retval = true;
             }
