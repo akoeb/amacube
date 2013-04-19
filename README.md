@@ -48,11 +48,11 @@ options.
     @storage_sql_dsn = @lookup_sql_dsn;
 
 * for release of quarantined emails
-    # tell amavis to listen on all interfaces:
+    \# tell amavis to listen on all interfaces:
     $inet_socket_bind = undef;
-    # The ports amavis needs to listen (10024 for postfix, 9998 for us)
+    \# The ports amavis needs to listen (10024 for postfix, 9998 for us)
     $inet_socket_port = [10024, 9998];
-    # new interface policy for posrt 9998
+    \# new interface policy for posrt 9998
     $interface_policy{'9998'} = 'AM.PDP-INET';
     $policy_bank{'AM.PDP-INET'} = {
       protocol => 'AM.PDP',  # select Amavis policy delegation protocol
