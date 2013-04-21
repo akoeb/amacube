@@ -28,7 +28,7 @@ All Those configuration options apply only to the user, for all other users the 
 * It is tested only with mysql for now.
 * If a user loads the settings page first time and he has no database record yet, it will be created upon save of the settings.
 * If you find bugs, have comments on the software, want to send patches or have implementation wishes, you are welcome to send them to me, but I won't promise anything.
-* If you find tis software useful and you ever show up in the same geographical location as I am, you are welcome to buy me a beer. ;-)
+* If you find this software useful and you ever show up in the same geographical location as I am, you are welcome to buy me a beer. ;-)
 
 
 ## Installation
