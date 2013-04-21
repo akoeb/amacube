@@ -22,10 +22,10 @@ See the COPYING file for a full license statement.
 
 
 // DEBUG
-// error_reporting(E_ALL);
-// ini_set('display_errors', 'Off');
-// ini_set("log_errors", 1);
-// ini_set("error_log", "/var/www/roundcube/plugins/amacube/roundcube-error.log");
+error_reporting(E_ALL);
+ini_set('display_errors', 'Off');
+ini_set("log_errors", 1);
+ini_set("error_log", "/var/www/roundcube/plugins/amacube/roundcube-error.log");
 class amacube extends rcube_plugin
 {
     // all tasks except login / logout
@@ -92,6 +92,9 @@ class amacube extends rcube_plugin
         include_once('AmavisSettings.php');
         $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
 
+        // path to info graphic
+        $info_png = $this->urlbase.'media/info.png';
+
 
         // create a message box stating that the users values were filled from default
         // if no database record was found:
@@ -131,12 +134,13 @@ class amacube extends rcube_plugin
             'activate_spam_check', 
             Q($this->gettext('spamcheck'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'spam_check_active',
-            'alt' => 'spam_check_active'
+            'src' => $info_png,
+            'title' => Q($this->gettext('spam_check_active_info')),
+            'alt' => Q($this->gettext('spamcheck'))
         )));
+
 
         # checkboxes to activate virus check:
         $table->add('',$this->_show_checkbox( 
@@ -147,11 +151,11 @@ class amacube extends rcube_plugin
             'activate_virus_check', 
             Q($this->gettext('viruscheck'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'virus_check_active',
-            'alt' => 'virus_check_active'
+            'src' => $info_png,
+            'title' => Q($this->gettext('virus_check_active_info')),
+            'alt' => Q($this->gettext('virus_check_active'))
         )));
 
 
@@ -170,11 +174,11 @@ class amacube extends rcube_plugin
             'activate_spam_quarantine', 
             Q($this->gettext('spamquarantine'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'spam_quarantine_active',
-            'alt' => 'spam_quarantine_active'
+            'src' => $info_png,
+            'title' => Q($this->gettext('spam_quarantine_active_info')),
+            'alt' => Q($this->gettext('spam_quarantine_active'))
         )));
 
         # checkbox to activate virus quarantine:
@@ -186,11 +190,11 @@ class amacube extends rcube_plugin
             'info', 
             Q($this->gettext('virusquarantine'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'virus_quarantine_active',
-            'alt' => 'virus_quarantine_active'
+            'src' => $info_png,
+            'title' => Q($this->gettext('virus_quarantine_active_info')),
+            'alt' => Q($this->gettext('virus_quarantine_active'))
         )));
 
         # checkbox to activate virus quarantine:
@@ -202,11 +206,11 @@ class amacube extends rcube_plugin
             'info', 
             Q($this->gettext('bannedquarantine'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'banned_quarantine_active',
-            'alt' => 'banned_quarantine_active'
+            'src' => $info_png,
+            'title' => Q($this->gettext('banned_quarantine_active_info')),
+            'alt' => Q($this->gettext('banned_quarantine_active'))
         )));
 
 
@@ -224,11 +228,11 @@ class amacube extends rcube_plugin
         $table->add('title', html::label(
             'spam_tag2_level', Q($this->gettext('spam_tag2_level'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'spam_tag2_level',
-            'alt' => 'spam_tag2_level'
+            'src' => $info_png,
+            'title' => Q($this->gettext('spam_tag2_level_info')),
+            'alt' => Q($this->gettext('spam_tag2_level'))
         )));
 
         # input box for sa_kill_level:
@@ -239,11 +243,11 @@ class amacube extends rcube_plugin
         $table->add('title', html::label(
             'spam_kill_level', Q($this->gettext('spam_kill_level'))
         ));
-        # FIXME: info image link:
+        # info image link:
         $table->add('',html::img(array(
-            'src' => '',
-            'title' => 'spam_kill_level',
-            'alt' => 'spam_kill_level'
+            'src' => $info_png,
+            'title' => Q($this->gettext('spam_kill_level_info')),
+            'alt' => Q($this->gettext('spam_kill_level'))
         )));
 
 
