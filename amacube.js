@@ -24,14 +24,12 @@ if (window.rcmail) {
         }, true);
 
         // need this for quarantine
-        rcmail.register_command('plugin.amacube-quarantine', function(){ rcmail.goto_url('plugin.amacube-quarantine') }, true);
+        rcmail.register_command('plugin.amacube-quarantine', function(){ rcmail.goto_url('mail/plugin.amacube-quarantine') }, true);
 
         rcmail.register_command('plugin.amacube-quarantine-post', function() { 
             // client input verification here
             rcmail.gui_objects.quarantineform.submit();
         }, true);
-
-
 
    });
 }

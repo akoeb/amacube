@@ -6,14 +6,14 @@
 * in a database)
 * 
 * @version 0.1
-* @author Alexander Köb <github@koeb.me>
+* @author Alexander Köb <nerdkram@koeb.me>
 * @url https://github.com/akoeb/amacube
 *
 */
 
 /*
 This file is part of the amacube Roundcube plugin
-Copyright (C) 2013, Alexander Köb
+Copyright (C) 2013, Alexander Köb <nerdkram@koeb.me>
 
 Licensed under the GNU General Public License version 3. 
 See the COPYING file for a full license statement.          
@@ -39,8 +39,7 @@ class amacube extends rcube_plugin
     {
         $this->load_config();
 
-     
-        // add taskbar button
+        // add taskbar button in all tasks
         $this->add_button(array(
             'command'    => 'plugin.amacube-quarantine',
             'class'      => 'button-quarantine',
@@ -48,13 +47,13 @@ class amacube extends rcube_plugin
             'innerclass' => 'button-inner',
             'label'      => 'quarantine',
         ), 'taskbar');
-
-
+        
+        $this->register_action('plugin.amacube-quarantine', array($this, 'init_quarantine'));
+        $this->register_action('plugin.amacube-quarantine-post', array($this, 'process_quarantines'));
+        
         // actions for our settings page
         $this->register_action('plugin.amacube', array($this, 'init_settings'));
         $this->register_action('plugin.amacube-save', array($this, 'save_settings'));
-        $this->register_action('plugin.amacube-quarantine', array($this, 'init_quarantine'));
-        $this->register_action('plugin.amacube-quarantine-post', array($this, 'process_quarantines'));
 
         // and javascript ui modifications:
         $this->include_script('amacube.js');
@@ -445,7 +444,7 @@ class amacube extends rcube_plugin
                     'id' => 'quarantineform',
                     'name' => 'quarantineform',
                     'method' => 'post',
-                    'action' => './?_task='.$rcmail->task.'&_action=plugin.amacube-quarantine-post',
+                    'action' => './?_task=mail&_action=plugin.amacube-quarantine-post',
                     ), $form_content);
         
     
