@@ -74,14 +74,13 @@ options.
 
 This is a uncomplete list of things that need to be done with this plugin
 * pagination in the quarantine list
-* localisation
 * proper error handling (see all those FIXME statements in the code)
 * eye candy
 * lots of help and information texts
 
 ## Version
 
-0.1 - initial release, functionally working, but ugly and lacking informational texts
+0.1.1 - initial release, functionally working, but ugly and lacking informational texts
 
 
 ## License

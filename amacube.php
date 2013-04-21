@@ -5,7 +5,7 @@
 * A Roundcube plugin to let users change their amavis settings (which must be stored
 * in a database)
 * 
-* @version 0.1
+* @version 0.1.1
 * @author Alexander Köb <nerdkram@koeb.me>
 * @url https://github.com/akoeb/amacube
 *
