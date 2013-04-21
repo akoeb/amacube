@@ -58,6 +58,9 @@ class amacube extends rcube_plugin
         // and javascript ui modifications:
         $this->include_script('amacube.js');
 
+        // localization
+        $this->add_texts('localization/', true);
+
     }
 
     // settings page is requested:
@@ -65,7 +68,7 @@ class amacube extends rcube_plugin
     {
         // body for the page is the settings form
         $this->register_handler('plugin.body', array($this, 'settings_form'));
-        rcmail::get_instance()->output->set_pagetitle($this->gettext('amavissettings'));
+        rcmail::get_instance()->output->set_pagetitle($this->gettext('amavissettings_pagetitle'));
         rcmail::get_instance()->output->send('plugin');
     }
     // quarantine list is requested:
@@ -73,7 +76,7 @@ class amacube extends rcube_plugin
     {
         // body of the page is the list of quarantined emails
         $this->register_handler('plugin.body', array($this, 'show_quarantine_list'));
-        rcmail::get_instance()->output->set_pagetitle($this->gettext('show_quarantine'));
+        rcmail::get_instance()->output->set_pagetitle($this->gettext('quarantine_pagetitle'));
         rcmail::get_instance()->output->send('plugin');
     }
   
@@ -115,14 +118,9 @@ class amacube extends rcube_plugin
         // create a table to hold form content:
         $table = new html_table(array('cols' => 3, 'cellpadding' => 3));
 
-        //DEBUG
-        $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q("DEBUG: user: ".$this->storage->user_pk.", policy: ".$this->storage->policy_pk)));
-        
-        
         // heading for first form section:
         $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('activate')))
+            'h4', null, Q($this->gettext('section activate')))
         );
 
         # checkboxes to activate spam check:
@@ -132,13 +130,13 @@ class amacube extends rcube_plugin
         ));
         $table->add('title', html::label(
             'activate_spam_check', 
-            Q($this->gettext('spamcheck'))
+            Q($this->gettext('spam_check'))
         ));
         # info image link:
         $table->add('',html::img(array(
             'src' => $info_png,
             'title' => Q($this->gettext('spam_check_active_info')),
-            'alt' => Q($this->gettext('spamcheck'))
+            'alt' => Q($this->gettext('spam_check_active'))
         )));
 
 
@@ -149,7 +147,7 @@ class amacube extends rcube_plugin
         ));
         $table->add('title', html::label(
             'activate_virus_check', 
-            Q($this->gettext('viruscheck'))
+            Q($this->gettext('virus_check'))
         ));
         # info image link:
         $table->add('',html::img(array(
@@ -161,7 +159,7 @@ class amacube extends rcube_plugin
 
         # next section: quarantine
         $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('quarantine')))
+            'h4', null, Q($this->gettext('section quarantine')))
         );
 
         # checkbox to activate spam quarantine:
@@ -172,7 +170,7 @@ class amacube extends rcube_plugin
 
         $table->add('title', html::label(
             'activate_spam_quarantine', 
-            Q($this->gettext('spamquarantine'))
+            Q($this->gettext('spam_quarantine'))
         ));
         # info image link:
         $table->add('',html::img(array(
@@ -188,7 +186,7 @@ class amacube extends rcube_plugin
         ));
         $table->add('title', html::label(
             'info', 
-            Q($this->gettext('virusquarantine'))
+            Q($this->gettext('virus_quarantine'))
         ));
         # info image link:
         $table->add('',html::img(array(
@@ -204,7 +202,7 @@ class amacube extends rcube_plugin
         ));
         $table->add('title', html::label(
             'info', 
-            Q($this->gettext('bannedquarantine'))
+            Q($this->gettext('banned_quarantine'))
         ));
         # info image link:
         $table->add('',html::img(array(
@@ -217,7 +215,7 @@ class amacube extends rcube_plugin
 
         # next section: input boxes for spam level settings
         $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('adjust levels')))
+            'h4', null, Q($this->gettext('section adjust levels')))
         );
 
         # input box for sa_tag2_level:
@@ -280,7 +278,7 @@ class amacube extends rcube_plugin
     {
         $this->register_handler('plugin.body', array($this, 'settings_form'));
         $rcmail = rcmail::get_instance();
-        $rcmail->output->set_pagetitle($this->gettext('amavissettings'));
+        $rcmail->output->set_pagetitle($this->gettext('amavissettings_pagetitle'));
         
         // et the post vars
         $activate_spam_check = get_input_value('_activate_spam_check', RCUBE_INPUT_POST, false);
@@ -295,11 +293,11 @@ class amacube extends rcube_plugin
         // verify the integer post params:
         $error = false;
         if (! is_numeric($spam_tag2_level) || $spam_tag2_level < -20 || $spam_tag2_level > 20) {
-            $rcmail->output->command('display_message', $this->gettext('spam_tag2_level'), 'error');
+            $rcmail->output->command('display_message', $this->gettext('spam_tag2_level_error'), 'error');
             $error = true;
         }
         if(! is_numeric($spam_kill_level) || $spam_kill_level < -20 || $spam_kill_level > 20) {
-            $rcmail->output->command('display_message', $this->gettext('spam_kill_level'), 'error');
+            $rcmail->output->command('display_message', $this->gettext('spam_kill_level_error'), 'error');
             $error = true;
         }
                   
@@ -365,7 +363,7 @@ class amacube extends rcube_plugin
             }
             else {
                 // success message and done
-                $rcmail->output->command('display_message', $this->gettext('successfullysaved'), 'confirmation');
+                $rcmail->output->command('display_message', $this->gettext('successfully saved'), 'confirmation');
             }
         }
         // and send:
@@ -383,7 +381,7 @@ class amacube extends rcube_plugin
                                                  $rcmail->config->get('amacube_amavis_host'), 
                                                  $rcmail->config->get('amacube_amavis_port'));
         
-        $output = html::tag('h4', null, Q($this->gettext('quarantine')));
+        $output = html::tag('h4', null, Q($this->gettext('quarantine heading')));
         
 
         // read post vars for pagination or set to defaults
@@ -405,12 +403,12 @@ class amacube extends rcube_plugin
         }
         elseif(count ($quarantines) == 0) {
             // no result:
-            $output .= Q($this->gettext('no_result'));
+            $output .= Q($this->gettext('quarantine_no_result'));
             return $output;
        }
 
         // create a table to hold form content:
-        $table = new html_table(array('cols' => 8, 'cellpadding' => 3));
+        $table = new html_table(array('cols' => 7, 'cellpadding' => 3));
 
         // header
         $table->add_header('','delete');
@@ -419,7 +417,6 @@ class amacube extends rcube_plugin
         $table->add_header('','Subject');
         $table->add_header('','Sender');
         $table->add_header('','Mail Type');
-        $table->add_header('','Delivery Status');
         $table->add_header('','Spam Level');
 
         foreach ($quarantines as $key => $value) {
@@ -429,7 +426,6 @@ class amacube extends rcube_plugin
             $table->add('',$quarantines[$key]['subject']);
             $table->add('',$quarantines[$key]['sender']);
             $table->add('',$this->gettext('content_decode_'.$quarantines[$key]['content']));
-            $table->add('',$this->gettext('dsn_decode_'.$quarantines[$key]['dsn']));
             $table->add('',$quarantines[$key]['level']);
 
         }
@@ -465,7 +461,7 @@ class amacube extends rcube_plugin
     function process_quarantines() {
         $this->register_handler('plugin.body', array($this, 'show_quarantine_list'));
         $rcmail = rcmail::get_instance();
-        $rcmail->output->set_pagetitle($this->gettext('quarantine'));
+        $rcmail->output->set_pagetitle($this->gettext('quarantine_pagetitle'));
         
 
         // get a list of quarantines to delete or release:
