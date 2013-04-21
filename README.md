@@ -37,17 +37,21 @@ All Those configuration options apply only to the user, for all other users the 
 I document here only some specific settings for this plugin, please refer to Amavis documentation for other configuration
 options.
 * Create a Database for amavis in Mysql:
+
     SQL> create database amavis;
 
 * allow access to this database from amavis and roundcube host in Mysql:
+
     SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<AMAVIS-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
     SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<ROUNDCUBE-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
 
 * set amavis database connection in the amavis configuration:
+
     @lookup_sql_dsn = ( ['DBI:mysql:database=amavis;host=<MYSQL-HOST>;port=3306', '<AMAVIS-USER>', '<AMAVIS-PASSWORD>]);
     @storage_sql_dsn = @lookup_sql_dsn;
 
 * for release of quarantined emails
+
     \# tell amavis to listen on all interfaces:
     $inet_socket_bind = undef;
     \# The ports amavis needs to listen (10024 for postfix, 9998 for us)
@@ -84,3 +88,6 @@ This is a uncomplete list of things that need to be done with this plugin
 
 GPLv3 - see COPYING file for full license statement
 
+## Author
+
+Alexander Köb <nerdkram@koeb.me>
