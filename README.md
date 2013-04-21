@@ -38,31 +38,39 @@ I document here only some specific settings for this plugin, please refer to Ama
 options.
 * Create a Database for amavis in Mysql:
 
+```sql
     SQL> create database amavis;
+```
 
 * allow access to this database from amavis and roundcube host in Mysql:
 
+```sql
     SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<AMAVIS-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
     SQL> grant all privileges on amavis.*  TO '<AMAVIS-USER>'@'<ROUNDCUBE-HOST>' IDENTIFIED BY '<AMAVIS-PASSWORD>';
+```
 
 * set amavis database connection in the amavis configuration:
 
+```perl
     @lookup_sql_dsn = ( ['DBI:mysql:database=amavis;host=<MYSQL-HOST>;port=3306', '<AMAVIS-USER>', '<AMAVIS-PASSWORD>]);
     @storage_sql_dsn = @lookup_sql_dsn;
+```
 
 * for release of quarantined emails
 
-    \# tell amavis to listen on all interfaces:
+```perl
+    # tell amavis to listen on all interfaces:
     $inet_socket_bind = undef;
-    \# The ports amavis needs to listen (10024 for postfix, 9998 for us)
+    # The ports amavis needs to listen (10024 for postfix, 9998 for us)
     $inet_socket_port = [10024, 9998];
-    \# new interface policy for posrt 9998
+    # new interface policy for posrt 9998
     $interface_policy{'9998'} = 'AM.PDP-INET';
     $policy_bank{'AM.PDP-INET'} = {
-      protocol => 'AM.PDP',  # select Amavis policy delegation protocol
-      inet_acl => [qw( 127.0.0.1 [::1] )],  # restrict access to these IP addresses
-      auth_required_release => 1,  # require secret_id for amavisd-release
+        protocol => 'AM.PDP',  # select Amavis policy delegation protocol
+        inet_acl => [qw( 127.0.0.1 [::1] )],  # restrict access to these IP addresses
+        auth_required_release => 1,  # require secret_id for amavisd-release
     };
+```
 
 2. Amacube Plugin
 * create a directory in your roundcube plugin directory called amacube
