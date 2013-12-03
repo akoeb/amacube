@@ -47,7 +47,7 @@ class AmavisQuarantine extends AmavisAbstract
         $query = "
             SELECT
               UNIX_TIMESTAMP()-msgs.time_num AS age, SUBSTRING(policy,1,2) as pb,
-              msgrcpt.content AS content, dsn_sent AS dsn, 
+              msgs.content AS content, dsn_sent AS dsn, 
               ds AS delivery_status, bspam_level AS level, size,
               SUBSTRING(sender.email,1,40) AS sender,
               SUBSTRING(recip.email,1,40)  AS recipient,
@@ -57,7 +57,7 @@ class AmavisQuarantine extends AmavisAbstract
                         LEFT JOIN maddr      AS sender ON msgs.sid=sender.id
                         LEFT JOIN maddr      AS recip  ON msgrcpt.rid=recip.id
                         LEFT JOIN quarantine AS quar   ON quar.mail_id = msgs.mail_id
-              WHERE msgrcpt.content IS NOT NULL 
+              WHERE msgs.content IS NOT NULL 
               AND msgs.quar_type = 'Q'
               AND recip.email = ?
               ORDER BY msgs.time_num DESC
