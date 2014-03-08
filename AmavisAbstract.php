@@ -66,11 +66,11 @@ class AmavisAbstract
         if (!$this->db_conn) {
             return false;
         }
-        elseif(!$this->db_conn->db_error) {
+        elseif(!$this->db_conn->is_error()) {
             return false;
         }
         else {
-            return $this->db_conn->db_error_msg;
+            return $this->db_conn->is_error();
         }
     }
 

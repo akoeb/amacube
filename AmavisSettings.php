@@ -335,8 +335,8 @@ class AmavisSettings extends AmavisAbstract
         $res = $this->db_conn->query($query, $query_params);
 
         // error check
-        if($this->db_conn->db_error) {
-            return "Error in insert/update policy: ".$this->db_conn->db_error_msg;
+        if($this->db_error) {
+            return "Error in insert/update policy: ".$this->db_error();
         }
 
         // in case this was an insert, read policy_pk and insert user as well if needed 
@@ -345,7 +345,7 @@ class AmavisSettings extends AmavisAbstract
             $this->policy_pk = $this->db_conn->insert_id();
             // error check
             if(empty($this->policy_pk)) {
-                return "Could not get Primary Key for policy: ".$this->db_conn->db_error_msg;
+                return "Could not get Primary Key for policy: ".$this->db_error();
             }
 
             // now that we have the policy pk, we check 
@@ -355,8 +355,8 @@ class AmavisSettings extends AmavisAbstract
                 $this->user_email);
             
             // error check
-            if($this->db_conn->db_error) {
-                return "Error in checking for user record: ".$this->db_conn->db_error_msg;
+            if($this->db_error) {
+                return "Error in checking for user record: ".$this->db_error();
             }
 
             if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
@@ -373,8 +373,8 @@ class AmavisSettings extends AmavisAbstract
                     $this->policy_pk, $this->user_email);
             }
             //  error check
-            if($this->db_conn->db_error) {
-                return "Error in inserting/updating user record: ".$this->db_conn->db_error_msg;
+            if($this->db_error) {
+                return "Error in inserting/updating user record: ".$this->db_error();
             }
         }
         // all good:
