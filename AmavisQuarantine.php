@@ -60,14 +60,12 @@ class AmavisQuarantine extends AmavisAbstract
               WHERE msgs.content IS NOT NULL 
               AND msgs.quar_type = 'Q'
               AND recip.email = ?
-              ORDER BY msgs.time_num DESC
-              LIMIT ?, ?
-              ";
+              ORDER BY msgs.time_num DESC";
 
 
         // prepare statement and execute
-        $res = $this->db_conn->query($query, $this->user_email, $start_index, $rows_displayed);
-        if($this->db_conn->db_error) {
+        $res = $this->db_conn->limitquery($query, $start_index, $rows_displayed, $this->user_email);
+        if($this->db_error) {
             return "Error in selecting quarantined E-Mails: ".$this->db_error();
         }
         // write the first result line to settings array
@@ -114,7 +112,7 @@ class AmavisQuarantine extends AmavisAbstract
         $error = '';
         foreach(array('quarantine', 'msgrcpt', 'msgs') as $table) {
             $res = $this->db_conn->query($query_start.$table.$query_end, $mails); 
-            if($this->db_conn->db_error) {
+            if($this->db_error) {
                 $error .= "Error in deleting from $table ".$this->db_error();
             }
         }
@@ -149,7 +147,7 @@ class AmavisQuarantine extends AmavisAbstract
 
         // prepare statement and execute
         $res = $this->db_conn->query($query, $mails);
-        if($this->db_conn->db_error) {
+        if($this->db_error) {
             return "Error in selecting quarantined E-Mails for release: ".$this->db_error();
         }
         // create an array of commands to submit to amavis release:
