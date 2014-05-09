@@ -1,504 +1,527 @@
 <?php
-/**
-*  Amacube
-* 
-* A Roundcube plugin to let users change their amavis settings (which must be stored
-* in a database)
-* 
-* @version 0.1.1
-* @author Alexander Köb <nerdkram@koeb.me>
-* @url https://github.com/akoeb/amacube
-*
-*/
 
-/*
-This file is part of the amacube Roundcube plugin
-Copyright (C) 2013, Alexander Köb <nerdkram@koeb.me>
-
-Licensed under the GNU General Public License version 3. 
-See the COPYING file for a full license statement.          
-
-*/
-
-
-// DEBUG
 error_reporting(E_ALL);
 ini_set('display_errors', 'Off');
 ini_set("log_errors", 1);
-ini_set("error_log", "/var/www/roundcube/plugins/amacube/roundcube-error.log");
+ini_set("error_log", "/var/www/wms/var/www/hostingmanagement/webmail/logs/errors");
+
 class amacube extends rcube_plugin
 {
-    // all tasks except login / logout
-    public $task = '?(?!login|logout).*';
+    // All tasks excluding 'login' and 'logout'
+    public 	$task 		= '?(?!login|logout).*';
+	private	$rc;
+	private	$amacube;
 
-    private $storage;
-    private $quarantine;
-
-    // every plugin needs to overwrite this:
     function init()
     {
+    	$this->rc 					= rcmail::get_instance();
+		$this->amacube 				= new stdClass;
+		$this->amacube->errors		= array();
+		$this->amacube->feedback	= array();
+    	// Load config
         $this->load_config();
-
-        // add taskbar button in all tasks
+		// Load settings
+        include_once('AmavisConfig.php');
+        $this->amacube->config = new AmavisConfig($this->rc->config->get('amacube_db_dsn'));
+		// Check for user & auto create option (disable plugin)
+		if (!$this->amacube->config->initialized && $this->rc->config->get('amacube_auto_create_user') !== true) { return; }
+		// Write default user & config
+		if (!$this->amacube->config->initialized && $this->rc->config->get('amacube_auto_create_user') === true) {
+			// Check accounts database for filter enabled
+			if ($this->rc->config->get('amacube_accounts_db_dsn')) {
+				include_once('AccountConfig.php');
+				$this->amacube->account = new AccountConfig($this->rc->config->get('amacube_accounts_db_dsn'));
+				if ($this->amacube->account->initialized && $this->amacube->account->filter == false) {
+					// Explicitly denied: return
+					return;
+				}
+			}
+			if (!$this->amacube->config->write_to_db()) {
+				$this->amacube->errors[] = $this->amacube->config->errors[0];
+			} else {
+				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'policy_default_message');
+			}
+		}
+		// Add localization
+        $this->add_texts('localization/', true);
+		// Register tasks & actions
+        $this->register_action('plugin.amacube-settings', array($this, 'settings_init'));
+		$this->register_task('quarantine');
+		$this->register_action('plugin.amacube-quarantine', array($this, 'quarantine_init'));
+		// Initialize GUI
+        $this->add_hook('startup', array($this, 'gui_init'));
+		// Send feedback
+		$this->feedback();
+    }
+	// Initialize GUI
+    function gui_init()
+    {
+    	// Add settings tab
+    	$this->add_hook('settings_actions', array($this, 'settings_actions'));
+        // Add taskbar button
         $this->add_button(array(
-            'command'    => 'plugin.amacube-quarantine',
+            'command'    => 'quarantine',
             'class'      => 'button-quarantine',
             'classsel'   => 'button-quarantine button-selected',
             'innerclass' => 'button-inner',
-            'label'      => 'quarantine',
+            'label'      => 'amacube.quarantine',
         ), 'taskbar');
-        
-        $this->register_action('plugin.amacube-quarantine', array($this, 'init_quarantine'));
-        $this->register_action('plugin.amacube-quarantine-post', array($this, 'process_quarantines'));
-        
-        // actions for our settings page
-        $this->register_action('plugin.amacube', array($this, 'init_settings'));
-        $this->register_action('plugin.amacube-save', array($this, 'save_settings'));
-
-        // and javascript ui modifications:
+		// Add javascript
         $this->include_script('amacube.js');
-
-        // localization
-        $this->add_texts('localization/', true);
-
-    }
-
-    // settings page is requested:
-    function init_settings()
-    {
-        // body for the page is the settings form
-        $this->register_handler('plugin.body', array($this, 'settings_form'));
-        rcmail::get_instance()->output->set_pagetitle($this->gettext('amavissettings_pagetitle'));
-        rcmail::get_instance()->output->send('plugin');
-    }
-    // quarantine list is requested:
-    function init_quarantine()
-    {
-        // body of the page is the list of quarantined emails
-        $this->register_handler('plugin.body', array($this, 'show_quarantine_list'));
-        rcmail::get_instance()->output->set_pagetitle($this->gettext('quarantine_pagetitle'));
-        rcmail::get_instance()->output->send('plugin');
-    }
-  
-    // This displays the settings form
-    function settings_form()
-    {
-        $rcmail = rcmail::get_instance();
-        $user = $rcmail->user;
-
-        // collect and store the output in this var:
-        $out = '';
-        
-        // load user settings from the database
-        // if the user has not yet settings in the database, the form will be 
-        //filled with default values in the property declaration of that class:
-        include_once('AmavisSettings.php');
-        $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
-
-        // path to info graphic
-        $info_png = $this->urlbase.'media/info.png';
-
-
-        // create a message box stating that the users values were filled from default
-        // if no database record was found:
-        if(! $this->storage->policy_pk) {
-            $rcmail->output->command('display_message', $this->gettext('policy_default_message'), 'warning');
+        // Add stylesheet
+        $skin_path = $this->local_skin_path();
+        if (is_file($this->home . "/$skin_path/amacube.css")) {
+            $this->include_stylesheet("$skin_path/amacube.css");
         }
+    }
+	// Register as settings action
+    function settings_actions($args)
+    {
+        $args['actions'][] = array('action' => 'plugin.amacube-settings', 'class' => 'filter-settings', 'label' => 'filter_settings_pagetitle', 'domain' => 'amacube');
+        return $args;
+    }
+    // Initialize settings task
+    function settings_init()
+    {
+        // Use standard plugin page template
+        $this->register_handler('plugin.body', array($this, 'settings_display'));
+        $this->rc->output->set_pagetitle(Q($this->gettext('filter_settings_pagetitle')));
+        $this->rc->output->send('plugin');
+    }
+    // Initialize quarantine task
+    function quarantine_init()
+    {
+		if (get_input_value('_remote', RCUBE_INPUT_POST, false) == 1) {
+			// Client pagination request
+			$this->quarantine_display(true);
+		} else {
+			// Client page request
+	        $this->register_handler('plugin.countdisplay', array($this, 'quarantine_display_count'));
+	        $this->register_handler('plugin.body', array($this, 'quarantine_display'));
+	        $this->rc->output->set_pagetitle(Q($this->gettext('quarantine_pagetitle')));
+			// Use amacube quarantine page template
+			$this->rc->output->send('amacube.quarantine');
+		}
+    }
+    // Display settings action
+    function settings_display()
+    {
+		// Include settings class
+		if (!$this->amacube->config) {
+        	include_once('AmavisConfig.php');
+        	$this->amacube->config = new AmavisConfig($this->rc->config->get('amacube_db_dsn'));
+		}
+		// Parse form
+		if (get_input_value('_token', RCUBE_INPUT_POST, false)) { $this->settings_post(); }
+		
+        // Create output
+        $output = '';
+		// Add header to output
+		$output .= html::tag('h1', array('class' => 'boxtitle'), Q($this->gettext('filter_settings_pagetitle')));
+		
+        // Create output : table (checks)
+        $output_table = new html_table(array('cols' => 2, 'cellpadding' => 3, 'class' => 'propform'));
+        // Create output : table : checkbox : spam check
+        $output_table->add('title', html::label('activate_spam_check', $this->gettext('spam_check')));
+		$output_table->add('',$this->_show_checkbox('activate_spam_check', $this->amacube->config->is_active('spam')));
+		// Create output : table : checkbox : virus check
+        $output_table->add('title', html::label('activate_virus_check', $this->gettext('virus_check')));
+		$output_table->add('',$this->_show_checkbox('activate_virus_check', $this->amacube->config->is_active('virus')));
+		// Create output : fieldset
+		$output_legend = html::tag('legend', null , $this->gettext('section_checks'));
+		$output_fieldset = html::tag('fieldset', array('class' => 'checks'),$output_legend.$output_table->show());
+		// Create output : activate
+		$output_checks = $output_fieldset;
 
-        // add some labels to client
-        $rcmail->output->add_label(
+        // Create output : table (delivery)
+        $output_table = new html_table(array('cols' => 2, 'cellpadding' => 3, 'class' => 'propform'));
+		// Create output : table : radios : spam
+		$output_table->add('title', $this->gettext('spam_delivery'));
+		$string = '';
+        $string .= $this->_show_radio('spam_delivery_deliver','spam_delivery', 'deliver',$this->amacube->config->is_delivery('spam','deliver')).' ';
+		$string .= html::label('spam_delivery_deliver', $this->gettext('deliver'));
+		$string .= $this->_show_radio('spam_delivery_quarantine','spam_delivery', 'quarantine',$this->amacube->config->is_delivery('spam','quarantine')).' ';
+		$string .= html::label('spam_delivery_quarantine', $this->gettext('quarantine'));
+		$string .= $this->_show_radio('spam_delivery_discard','spam_delivery', 'discard',$this->amacube->config->is_delivery('spam','discard'));
+		$string .= html::label('spam_delivery_discard', $this->gettext('discard'));
+		$output_table->add('',$string);
+        // Create output : table : radios : virus
+        $output_table->add('title', $this->gettext('virus_delivery'));
+		$string = '';
+        $string .= $this->_show_radio('virus_delivery_deliver','virus_delivery', 'deliver',$this->amacube->config->is_delivery('virus','deliver')).' ';
+		$string .= html::label('virus_delivery_deliver', $this->gettext('deliver'));
+		$string .= $this->_show_radio('virus_delivery_quarantine','virus_delivery', 'quarantine',$this->amacube->config->is_delivery('virus','quarantine')).' ';
+		$string .= html::label('virus_delivery_quarantine', $this->gettext('quarantine'));
+		$string .= $this->_show_radio('virus_delivery_discard','virus_delivery', 'discard',$this->amacube->config->is_delivery('virus','discard'));
+		$string .= html::label('virus_delivery_discard', $this->gettext('discard'));
+		$output_table->add('',$string);
+        // Create output : table : radios : banned
+        $output_table->add('title', $this->gettext('banned_delivery'));
+		$string = '';
+        $string .= $this->_show_radio('banned_delivery_deliver','banned_delivery', 'deliver',$this->amacube->config->is_delivery('banned','deliver')).' ';
+		$string .= html::label('banned_delivery_deliver', $this->gettext('deliver'));
+		$string .= $this->_show_radio('banned_delivery_quarantine','banned_delivery', 'quarantine',$this->amacube->config->is_delivery('banned','quarantine')).' ';
+		$string .= html::label('banned_delivery_quarantine', $this->gettext('quarantine'));
+		$string .= $this->_show_radio('banned_delivery_discard','banned_delivery', 'discard',$this->amacube->config->is_delivery('banned','discard'));
+		$string .= html::label('banned_delivery_discard', $this->gettext('discard'));
+		$output_table->add('',$string);
+        // Create output : table : radios : bad_header
+        $output_table->add('title', $this->gettext('bad_header_delivery'));
+		$string = '';
+        $string .= $this->_show_radio('badheader_delivery_deliver','badheader_delivery', 'deliver',$this->amacube->config->is_delivery('bad_header','deliver')).' ';
+		$string .= html::label('badheader_delivery_deliver', $this->gettext('deliver'));
+		$string .= $this->_show_radio('badheader_delivery_quarantine','badheader_delivery', 'quarantine',$this->amacube->config->is_delivery('bad_header','quarantine')).' ';
+		$string .= html::label('badheader_delivery_quarantine', $this->gettext('quarantine'));
+		$string .= $this->_show_radio('badheader_delivery_discard','badheader_delivery', 'discard',$this->amacube->config->is_delivery('bad_header','discard'));
+		$string .= html::label('badheader_delivery_discard', $this->gettext('discard'));
+		$output_table->add('',$string);
+		
+		
+		// Create output : fieldset
+		$output_legend = html::tag('legend', null, $this->gettext('section_delivery'));
+		$output_fieldset = html::tag('fieldset', array('class' => 'delivery'),$output_legend.$output_table->show());
+		// Create output : quarantine
+		$output_delivery = $output_fieldset;
+		
+        // Create output : table (levels)
+        $output_table = new html_table(array('cols' => 2, 'cellpadding' => 3, 'class' => 'propform'));
+		// Create output : table : input : sa_tag2_level
+        $output_table->add('title', html::label('spam_tag2_level', $this->gettext('spam_tag2_level')));
+        $output_table->add('',$this->_show_inputfield('spam_tag2_level', $this->amacube->config->policy_setting['spam_tag2_level']));
+		// Create output : table : input : sa_kill_level
+		$output_table->add('title', html::label('spam_kill_level', $this->gettext('spam_kill_level')));
+        $output_table->add('',$this->_show_inputfield('spam_kill_level', $this->amacube->config->policy_setting['spam_kill_level']));
+		// Create output : table : input : sa_cutoff_level
+		$output_table->add('title', html::label('spam_quarantine_cutoff_level', $this->gettext('spam_quarantine_cutoff_level')));
+        $output_table->add('',$this->_show_inputfield('spam_quarantine_cutoff_level', $this->amacube->config->policy_setting['spam_quarantine_cutoff_level']));
+		// Create output : fieldset
+		$output_legend = html::tag('legend', null, $this->gettext('section_levels'));
+		$output_fieldset = html::tag('fieldset', array('class' => 'levels'),$output_legend.$output_table->show());
+		// Create output : levels
+		$output_levels = $output_fieldset;
+
+		// Create output : button
+		$output_button = html::div('footerleft formbuttons',$this->rc->output->button(array(
+            'command' => 'plugin.amacube-settings-post',
+            'type' => 'input',
+            'class' => 'button mainaction',
+            'label' => 'save'
+        )));
+		// Add form to container and container to output
+        $output .= html::div(array('id' => 'preferences-details', 'class' => 'boxcontent'),$this->rc->output->form_tag(array(
+            'id' => 'amacubeform',
+            'name' => 'amacubeform',
+            'class' => 'propform',
+            'method' => 'post',
+            'action' => './?_task=settings&_action=plugin.amacube-settings',
+        ), $output_checks.$output_delivery.$output_levels));
+        // Add labels to client
+        $this->rc->output->add_label(
                 'amacube.activate_spam_check',
                 'amacube.activate_virus_check',
                 'amacube.activate_spam_quarantine',
                 'amacube.activate_virus_quarantine',
+                'amacube.activate_banned_quarantine',
                 'amacube.spam_tag2_level',
                 'amacube.spam_kill_level'
         );
-
-        // create a table to hold form content:
-        $table = new html_table(array('cols' => 3, 'cellpadding' => 3));
-
-        // heading for first form section:
-        $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('section activate')))
-        );
-
-        # checkboxes to activate spam check:
-        $table->add('',$this->_show_checkbox(
-            'activate_spam_check',
-            $this->storage->is_check_activated_checkbox('spam')
-        ));
-        $table->add('title', html::label(
-            'activate_spam_check', 
-            Q($this->gettext('spam_check'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('spam_check_active_info')),
-            'alt' => Q($this->gettext('spam_check_active'))
-        )));
-
-
-        # checkboxes to activate virus check:
-        $table->add('',$this->_show_checkbox( 
-            'activate_virus_check',
-            $this->storage->is_check_activated_checkbox('virus')
-        ));
-        $table->add('title', html::label(
-            'activate_virus_check', 
-            Q($this->gettext('virus_check'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('virus_check_active_info')),
-            'alt' => Q($this->gettext('virus_check_active'))
-        )));
-
-
-        # next section: quarantine
-        $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('section quarantine')))
-        );
-
-        # checkbox to activate spam quarantine:
-        $table->add('',$this->_show_checkbox( 
-            'activate_spam_quarantine',
-            $this->storage->is_quarantine_activated_checkbox('spam')
-        ));
-
-        $table->add('title', html::label(
-            'activate_spam_quarantine', 
-            Q($this->gettext('spam_quarantine'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('spam_quarantine_active_info')),
-            'alt' => Q($this->gettext('spam_quarantine_active'))
-        )));
-
-        # checkbox to activate virus quarantine:
-        $table->add('',$this->_show_checkbox( 
-            'activate_virus_quarantine',
-            $this->storage->is_quarantine_activated_checkbox('virus')
-        ));
-        $table->add('title', html::label(
-            'info', 
-            Q($this->gettext('virus_quarantine'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('virus_quarantine_active_info')),
-            'alt' => Q($this->gettext('virus_quarantine_active'))
-        )));
-
-        # checkbox to activate virus quarantine:
-        $table->add('',$this->_show_checkbox( 
-            'activate_banned_quarantine',
-            $this->storage->is_quarantine_activated_checkbox('banned')
-        ));
-        $table->add('title', html::label(
-            'info', 
-            Q($this->gettext('banned_quarantine'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('banned_quarantine_active_info')),
-            'alt' => Q($this->gettext('banned_quarantine_active'))
-        )));
-
-
-
-        # next section: input boxes for spam level settings
-        $table->add(array('colspan' => '3'), html::tag(
-            'h4', null, Q($this->gettext('section adjust levels')))
-        );
-
-        # input box for sa_tag2_level:
-        $table->add('',$this->_show_inputfield( 
-            'spam_tag2_level',
-            $this->storage->policy_setting['spam_tag2_level']
-        ));
-        $table->add('title', html::label(
-            'spam_tag2_level', Q($this->gettext('spam_tag2_level'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('spam_tag2_level_info')),
-            'alt' => Q($this->gettext('spam_tag2_level'))
-        )));
-
-        # input box for sa_kill_level:
-        $table->add('',$this->_show_inputfield( 
-            'spam_kill_level',
-            $this->storage->policy_setting['spam_kill_level']
-        ));
-        $table->add('title', html::label(
-            'spam_kill_level', Q($this->gettext('spam_kill_level'))
-        ));
-        # info image link:
-        $table->add('',html::img(array(
-            'src' => $info_png,
-            'title' => Q($this->gettext('spam_kill_level_info')),
-            'alt' => Q($this->gettext('spam_kill_level'))
-        )));
-
-
-        # last section: submit button, empty row as separator
-        $table->add_row('');
-        $table->add('','');
-        $table->add(array('colspan' => '2'), 
-            $rcmail->output->button(array(
-                'command' => 'plugin.amacube-save',
-                'type' => 'input',
-                'class' => 'button mainaction',
-                'label' => 'save'
-        )));
-        
-    
-        // register the form to the client:
-        $rcmail->output->add_gui_object('amacubeform', 'amacubeform');
-        // and return the page including form tags:
-        return $rcmail->output->form_tag(array(
-                    'id' => 'amacubeform',
-                    'name' => 'amacubeform',
-                    'method' => 'post',
-                    'action' => './?_task=settings&_action=plugin.amacube-save',
-                    ), $table->show());
-
+		// Add button to output
+		$output .= $output_button;
+        // Add form to client
+        $this->rc->output->add_gui_object('amacubeform', 'amacubeform');
+		// Send feedback
+		$this->feedback();
+		// Return output
+		return $output;
     }
 
-    // this saves the setting after the settings form was submitted
-    function save_settings()
+    // Save settings action
+    function settings_post()
     {
-        $this->register_handler('plugin.body', array($this, 'settings_form'));
-        $rcmail = rcmail::get_instance();
-        $rcmail->output->set_pagetitle($this->gettext('amavissettings_pagetitle'));
-        
-        // et the post vars
-        $activate_spam_check = get_input_value('_activate_spam_check', RCUBE_INPUT_POST, false);
-        $activate_virus_check = get_input_value('_activate_virus_check', RCUBE_INPUT_POST, false);
-        $activate_spam_quarantine = get_input_value('_activate_spam_quarantine', RCUBE_INPUT_POST, false);
-        $activate_virus_quarantine = get_input_value('_activate_virus_quarantine', RCUBE_INPUT_POST, false);
-        $activate_banned_quarantine = get_input_value('_activate_banned_quarantine', RCUBE_INPUT_POST, false);
-
-        $spam_tag2_level = get_input_value('_spam_tag2_level', RCUBE_INPUT_POST, false);
-        $spam_kill_level = get_input_value('_spam_kill_level', RCUBE_INPUT_POST, false);
-
-        // verify the integer post params:
-        $error = false;
-        if (! is_numeric($spam_tag2_level) || $spam_tag2_level < -20 || $spam_tag2_level > 20) {
-            $rcmail->output->command('display_message', $this->gettext('spam_tag2_level_error'), 'error');
-            $error = true;
+        // Get the checks post vars
+        $activate_spam_check 			= get_input_value('activate_spam_check', RCUBE_INPUT_POST, false);
+        $activate_virus_check 			= get_input_value('activate_virus_check', RCUBE_INPUT_POST, false);
+		// Get the levels post vars
+        $spam_tag2_level 				= get_input_value('spam_tag2_level', RCUBE_INPUT_POST, false);
+        $spam_kill_level 				= get_input_value('spam_kill_level', RCUBE_INPUT_POST, false);
+		$spam_quarantine_cutoff_level	= get_input_value('spam_quarantine_cutoff_level', RCUBE_INPUT_POST, false);
+        // Apply the checks post vars
+        if (!empty($activate_spam_check)) { $this->amacube->config->policy_setting['bypass_spam_checks'] = false;}
+        else { $this->amacube->config->policy_setting['bypass_spam_checks'] = true; }
+        if (!empty($activate_virus_check)) { $this->amacube->config->policy_setting['bypass_virus_checks'] = false; }
+        else { $this->amacube->config->policy_setting['bypass_virus_checks'] = true; }
+		// Apply the delivery post vars
+		foreach (array('spam_delivery','virus_delivery','banned_delivery','badheader_delivery') as $input) {
+			$method 	= get_input_value($input, RCUBE_INPUT_POST, false);
+			if ($method) {
+				$delivery 	= explode('_', $input);
+				$delivery 	= $delivery[0];
+				if ($delivery == 'banned') { $lover = $delivery.'_files'; }
+				elseif ($delivery == 'badheader') { $lover = 'bad_header'; $delivery = 'bad_header'; }
+				else { $lover = $delivery; }
+				switch ($method) {
+					case 'deliver':
+						$this->amacube->config->policy_setting[$lover.'_lover'] = true;
+						$this->amacube->config->policy_setting[$delivery.'_quarantine_to'] = false;
+						break;
+					case 'quarantine':
+						$this->amacube->config->policy_setting[$lover.'_lover'] = false;
+						$this->amacube->config->policy_setting[$delivery.'_quarantine_to'] = true;
+						break;
+					case 'discard':
+						$this->amacube->config->policy_setting[$lover.'_lover'] = false;
+						$this->amacube->config->policy_setting[$delivery.'_quarantine_to'] = false;
+						break;
+				}
+			}
+		}
+        // Apply the levels post vars
+        if (!is_numeric($spam_tag2_level) || $spam_tag2_level < -20 || $spam_tag2_level > 20) {
+            $this->amacube->errors[] = 'spam_tag2_level_error';
+        } else {
+        	$this->amacube->config->policy_setting['spam_tag2_level'] = $spam_tag2_level;
         }
-        if(! is_numeric($spam_kill_level) || $spam_kill_level < -20 || $spam_kill_level > 20) {
-            $rcmail->output->command('display_message', $this->gettext('spam_kill_level_error'), 'error');
-            $error = true;
+        if (!is_numeric($spam_kill_level) || $spam_kill_level < -20 || $spam_kill_level > 20) {
+            $this->amacube->errors[] = 'spam_kill_level_error';
+        } else {
+        	$this->amacube->config->policy_setting['spam_kill_level'] = $spam_kill_level;
         }
-                  
-        if(! $error) {
-            $write_error = '';
-            
-            // new storage object
-            include_once('AmavisSettings.php');
-            $this->storage = new AmavisSettings($rcmail->config->get('amacube_db_dsn'));
-    
-            // now overwrite the new settings:
-            if(!empty($activate_spam_check)) {
-                $this->storage->policy_setting['spam_lover'] = false;
-            }
-            else {
-                $this->storage->policy_setting['spam_lover'] = true;
-            }
-            if(!empty($activate_virus_check)) {
-                $this->storage->policy_setting['virus_lover'] = false;
-            }
-            else {
-                $this->storage->policy_setting['virus_lover'] = true;
-            }
-            if(! empty($activate_spam_quarantine)) {
-                $this->storage->policy_setting['spam_quarantine_to'] = true;
-            }
-            else {
-                $this->storage->policy_setting['spam_quarantine_to'] = false;
-            }
-            if(! empty($activate_virus_quarantine)) {
-                $this->storage->policy_setting['virus_quarantine_to'] = true;
-            }
-            else {
-                $this->storage->policy_setting['virus_quarantine_to'] = false;
-            }
-            if(! empty($activate_banned_quarantine)) {
-                $this->storage->policy_setting['banned_quarantine_to'] = true;
-            }
-            else {
-                $this->storage->policy_setting['banned_quarantine_to'] = false;
-            }
-            if($spam_tag2_level) {
-                $this->storage->policy_setting['spam_tag2_level'] = $spam_tag2_level;
-            }
-            if($spam_kill_level) {
-                $this->storage->policy_setting['spam_kill_level'] = $spam_kill_level;
-            }
-   
-            // check whether resulting property is syntactically correct:
-            $verify = $this->storage->verify_policy_array();
-            if(isset($verify) && is_array($verify)) {
-                //  error check: 
-                $rcmail->output->command('display_message', $this->gettext('verification_error'), 'error');
-            }
-            else {
-                // and store the settings:
-                $write_error = $this->storage->write_to_db();
-            }
-            // error check
-            if($write_error) {
-                $rcmail->output->command('display_message', $this->gettext('write_error'), 'error');
-                $rcmail->output->command('display_message', $write_error, 'error');
-            }
-            else {
-                // success message and done
-                $rcmail->output->command('display_message', $this->gettext('successfully saved'), 'confirmation');
-            }
+        if (!is_numeric($spam_quarantine_cutoff_level) || $spam_quarantine_cutoff_level < $this->amacube->config->policy_setting['spam_kill_level'] || $spam_kill_level > 1000) {
+            $this->amacube->errors[] = 'spam_quarantine_cutoff_level';
+        } else {
+        	$this->amacube->config->policy_setting['spam_quarantine_cutoff_level'] = $spam_quarantine_cutoff_level;
         }
-        // and send:
-        $rcmail->output->send('plugin');
+        // Verify policy config
+        if ($this->amacube->config->verify_policy_array() && $this->amacube->config->write_to_db()) {
+			$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'config_saved');
+        }
 
     }
 
+	// Display quarantine task
+	// Used to display entire page or specified range (ajax pagination)
+    function quarantine_display($ajax = false) {
 
-    // list all the quarantined mails for this user:
-    function show_quarantine_list () {
-
-        $rcmail = rcmail::get_instance();
+    	$ajax = ($ajax === true) ? true : false;
+		// Include quarantine class
         include_once('AmavisQuarantine.php');
-        $this->quarantine = new AmavisQuarantine($rcmail->config->get('amacube_db_dsn'),
-                                                 $rcmail->config->get('amacube_amavis_host'), 
-                                                 $rcmail->config->get('amacube_amavis_port'));
-        
-        $output = html::tag('h4', null, Q($this->gettext('quarantine heading')));
-        
-
-        // read post vars for pagination or set to defaults
-        $start_index = get_input_value('_start_index', RCUBE_INPUT_POST, false);
-        $rows_displayed = get_input_value('_rows_displayed', RCUBE_INPUT_POST, false);
-        if(!$start_index) $start_index = 0;
-        if(!$rows_displayed) $rows_displayed = 20;
-
-
-        // get the list of quarantined emails:
-        $quarantines = $this->quarantine->list_quarantines($start_index, $rows_displayed);
-
-        if(! is_array ($quarantines)) {
-            // FIXME error:
-            $output .= Q($this->gettext('db_error'));
-            $output .= $quarantines;
-            $rcmail->output->command('display_message', $quarantines, 'error');
-            return $output;
-        }
-        elseif(count ($quarantines) == 0) {
-            // no result:
-            $output .= Q($this->gettext('quarantine_no_result'));
-            return $output;
-       }
-
-        // create a table to hold form content:
-        $table = new html_table(array('cols' => 7, 'cellpadding' => 3));
-
-        // header
-        $table->add_header('','delete');
-        $table->add_header('','release');
-        $table->add_header('','Age');
-        $table->add_header('','Subject');
-        $table->add_header('','Sender');
-        $table->add_header('','Mail Type');
-        $table->add_header('','Spam Level');
-
-        foreach ($quarantines as $key => $value) {
-            $table->add('',$this->_show_checkbox('del_'.$quarantines[$key]['id']));
-            $table->add('',$this->_show_checkbox('rel_'.$quarantines[$key]['id']));
-            $table->add('',$quarantines[$key]['age']);
-            $table->add('',$quarantines[$key]['subject']);
-            $table->add('',$quarantines[$key]['sender']);
-            $table->add('',$this->gettext('content_decode_'.$quarantines[$key]['content']));
-            $table->add('',$quarantines[$key]['level']);
-
-        }
-
-        $form_content = $table->show();
-        $form_content .= html::div('',$rcmail->output->button(array(
-            'command' => 'plugin.amacube-quarantine-post',
-            'type' => 'input',
-            'class' => 'button mainaction',
-            'label' => 'process'
-            )));
-
-
-        # compose form, add table and action buttons:
-        $output .= $rcmail->output->form_tag(array(
-                    'id' => 'quarantineform',
-                    'name' => 'quarantineform',
-                    'method' => 'post',
-                    'action' => './?_task=mail&_action=plugin.amacube-quarantine-post',
-                    ), $form_content);
-        
-    
-        // register the form to the client:
-        $rcmail->output->add_gui_object('quarantineform', 'quarantineform');
-
-
-        return $output;
-    }
-
-    /**
-    * process_quarantines - action handler that either deletes quarantined mails or marks them for release
-    */
-    function process_quarantines() {
-        $this->register_handler('plugin.body', array($this, 'show_quarantine_list'));
-        $rcmail = rcmail::get_instance();
-        $rcmail->output->set_pagetitle($this->gettext('quarantine_pagetitle'));
-        
-
-        // get a list of quarantines to delete or release:
-        $delete = array(); // stores mail_ids to be deleted
-        $release = array(); // stores mail_ids to be released (and thus sent to the recipient)
-        foreach ($_POST as $key => $value) {
-            if($value === 'on' && preg_match('/_([dr]el)_([\w\-]+)/', $key, $matches)) {
-                if($matches[1] == 'del') {
-                    array_push($delete, $matches[2]);
-                }
-                elseif($matches[1] == 'rel') {
-                    array_push($release, $matches[2]);
-                }
-            }
-        }
-
-        // if we have intersections, thats an error, error output and stop:
-        $intersect = array_intersect($delete, $release);
-        if (is_array($intersect) && count($intersect) > 0) {
-            $rcmail->output->command('display_message', $this->gettext('intersection_error'), 'error');
-            $rcmail->output->send('plugin');
+        $this->amacube->quarantine = new AmavisQuarantine($this->rc->config->get('amacube_db_dsn'),
+                                                 $this->rc->config->get('amacube_amavis_host'), 
+                                                 $this->rc->config->get('amacube_amavis_port'));
+		// Parse form
+		if (get_input_value('_token', RCUBE_INPUT_POST, false)) { $this->quarantine_post(); }
+		$pagination = array();
+		if (!$ajax) {
+			$output 				= '';
+	        // Get all quarantines (0:0)
+	        // Used to calculate pagination based on total amount of quarantined messages
+			$pagination['start']	= 0;
+			$pagination['size']		= 0;
+		} else {
+			$output 				= array();
+			// Get paged quarantines
+			$pagination['current']	= get_input_value('page', RCUBE_INPUT_POST, false) ?: 1;
+			$pagination['total'] 	= get_input_value('msgcount', RCUBE_INPUT_POST, false);
+			if (!$pagination['current'] || !$pagination['total']) {	return; }
+			
+			$pagination['current']	= (int) $pagination['current'];
+			$pagination['total'] 	= (int) $pagination['total'];
+			$pagination['size']		= $this->rc->config->get('mail_pagesize');
+			$pagination['count']	= ceil(($pagination['total'] / $pagination['size']));
+			$pagination['start']	= (($pagination['current'] * $pagination['size']) - $pagination['size']);
+			$pagination['stop']		= ($pagination['start'] + $pagination['size']);
+		}
+		$quarantines = $this->amacube->quarantine->list_quarantines($pagination['start'],$pagination['size']);
+        if (!is_array($quarantines)) {
+			// Send feedback
+			$this->feedback();
+			// Return on error
             return;
         }
-        
-        
-        include_once('AmavisQuarantine.php');
-        $this->quarantine = new AmavisQuarantine($rcmail->config->get('amacube_db_dsn'), 
-                                                 $rcmail->config->get('amacube_amavis_host'), 
-                                                 $rcmail->config->get('amacube_amavis_port'));
-
-        $this->quarantine->delete($delete);
-        $this->quarantine->release($release);
-
-
-        // and send:
-        $rcmail->output->send('plugin');
+        if (count($quarantines) == 0) {
+        	$this->amacube->feedback[] = array('type' => 'notice', 'message' => 'quarantine_no_result');
+       	}
+		if (!$ajax) {
+			$pagination['current'] 	= 1;
+			$pagination['size']		= $this->rc->config->get('mail_pagesize');
+			$pagination['count']	= ceil((count($quarantines) / $pagination['size']));
+			$pagination['start']	= (($pagination['current'] * $pagination['size']) - $pagination['size']);
+			$pagination['stop']		= ($pagination['start'] + $pagination['size']);
+			$pagination['total'] 	= count($quarantines);
+		}
+		// Pagination string
+		$pagination['begin'] 		= ($pagination['start']+1);
+		$pagination['end'] 			= ($pagination['total'] <= $pagination['size']) ? $pagination['total'] : (($pagination['stop'] > $pagination['total']) ? $pagination['total'] : $pagination['stop']);
+		if (count($quarantines) == 0) {
+			$string					= Q($this->gettext('quarantine_no_result'));
+		} else {
+			$string					= Q($this->gettext('messages')).' '.$pagination['begin'].' '.Q($this->gettext('to')).' '.$pagination['end'].' '.Q($this->gettext('of')).' '.$pagination['total'];
+		}
+		if (!$ajax) {
+			// Store locally for template use (js include not loaded yet; command unavailable)
+			$this->pagination 		= $string;
+		} else {
+			$this->rc->output->command('amacube.messagecount',$string);
+		}
+		// Pagination env
+		$this->rc->output->set_env('page', $pagination['current']);
+		$this->rc->output->set_env('pagecount', $pagination['count']);
+		$this->rc->output->set_env('msgcount', $pagination['total']);
+		// Create output
+		if (!$ajax) {
+	        // Create output : header table
+	        $messages_table = new html_table(array(
+	        	'cols' 				=> 7,
+	        	'id'				=> 'messagelist',
+	        	'class' 			=> 'records-table messagelist sortheader fixedheader quarantine-messagelist'
+			));
+	        // Create output : table : headers
+	        $messages_table->add_header('release',Q($this->gettext('release')));
+	        $messages_table->add_header('delete',Q($this->gettext('delete')));
+	        $messages_table->add_header('received',Q($this->gettext('received')));
+	        $messages_table->add_header('subject',Q($this->gettext('subject')));
+	        $messages_table->add_header('sender',Q($this->gettext('sender')));
+	        $messages_table->add_header('type',Q($this->gettext('mailtype')));
+	        $messages_table->add_header('level',Q($this->gettext('spamlevel')));
+		}
+		// Create output : table : rows
+        foreach ($quarantines as $key => $value) {
+        	if (!$ajax) {
+	        	if ($key >= $pagination['start'] && $key < $pagination['stop']) {
+		            $messages_table->add('release',$this->_show_radio('rel_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_rel_'.$quarantines[$key]['id']));
+		            $messages_table->add('delete',$this->_show_radio('del_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_del_'.$quarantines[$key]['id']));
+		            $messages_table->add('date',Q(date('Y-m-d H:i:s',$quarantines[$key]['received'])));
+		            $messages_table->add('subject',Q($quarantines[$key]['subject']));
+		            $messages_table->add('sender',Q($quarantines[$key]['sender']));
+		            $messages_table->add('type',Q($this->gettext('content_decode_'.$quarantines[$key]['content'])));
+		            $messages_table->add('level',Q($quarantines[$key]['level']));
+	        	}        		
+        	} else {
+				$string 			= '<tr>';
+				$string				.= '<td class="release">'.$this->_show_radio('rel_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_rel_'.$quarantines[$key]['id']).'</td>';
+				$string				.= '<td class="delete">'.$this->_show_radio('del_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_del_'.$quarantines[$key]['id']).'</td>';
+				$string				.= '<td class="date">'.Q(date('Y-m-d H:i:s',$quarantines[$key]['received'])).'</td>';
+				$string				.= '<td class="subject">'.Q($quarantines[$key]['subject']).'</td>';
+				$string				.= '<td class="sender">'.Q($quarantines[$key]['sender']).'</td>';
+				$string				.= '<td class="type">'.Q($this->gettext('content_decode_'.$quarantines[$key]['content'])).'</td>';
+				$string				.= '<td class="level">'.Q($quarantines[$key]['level']).'</td>';
+				$string				.= '</tr>';
+				$output[]			= $string;
+        	}
+        }
+		if (!$ajax) {
+			// Create output : table form
+	        $output_table_form = $this->rc->output->form_tag(array(
+	            'id' => 'quarantineform',
+	            'name' => 'quarantineform',
+	            'method' => 'post',
+	            'action' => './?_task=quarantine&_action=plugin.amacube-quarantine',
+			), $messages_table->show());
+			// Add table container form to output
+			$output .= $output_table_form;
+	        // Add form to client
+	        $this->rc->output->add_gui_object('quarantineform', 'quarantineform');
+		} else {
+			// Send list command
+			$this->rc->output->command('amacube.messagelist',array('messages' => $output));
+			// Send page commands
+			if ($pagination['current'] > 1) {
+				// Enable first & previous
+				$this->rc->output->command('amacube.page','first','enabled');
+				$this->rc->output->command('amacube.page','previous','enabled');
+			} else {
+				// Disable first & previous
+				$this->rc->output->command('amacube.page','first','disabled');
+				$this->rc->output->command('amacube.page','previous','disabled');
+			}
+			if ($pagination['current'] < $pagination['count']) {
+				// Enable next & last
+				$this->rc->output->command('amacube.page','next','enabled');
+				$this->rc->output->command('amacube.page','last','enabled');
+			} else {
+				// Disable next & last
+				$this->rc->output->command('amacube.page','next','disabled');
+				$this->rc->output->command('amacube.page','last','disabled');
+			}
+			// Set output to nothing because client commands were used
+			$output = '';
+		}
+		// Feedback
+		$this->feedback();
+		return $output;
     }
+
+	function quarantine_display_count() {
+
+		return html::span(array('id' => 'rcmcountdisplay', 'class' => 'countdisplay quarantine-countdisplay'),$this->pagination);
+
+	}
+
+    function quarantine_post() {
+
+		// Prepare for quarantine display
+		////$this->register_handler('plugin.body', array($this,'quarantine_display'));
+		////$this->register_handler('plugin.countdisplay', array($this, 'quarantine_display_count'));
+        ////$this->rc->output->set_pagetitle(Q($this->gettext('quarantine_pagetitle')));
+		// Process quarantine
+        $delete = array();
+        $release = array();
+        foreach ($_POST as $key => $value) {
+            if (preg_match('/_([dr]el)_([\w\-]+)/', $value, $matches)) {
+                if ($matches[1] == 'del') { array_push($delete, $matches[2]); }
+                elseif ($matches[1] == 'rel') { array_push($release, $matches[2]); }
+            }
+        }
+		// Intersection error (should no longer happen with radio inputs but still)
+        $intersect = array_intersect($delete, $release);
+        if (is_array($intersect) && count($intersect) > 0) {
+			$this->amacube->errors[] = 'intersection_error';
+			$this->feedback();
+			$this->rc->output->send('amacube.quarantine');
+            return;
+        }
+        // Load quarantine class
+        ////include_once('AmavisQuarantine.php');
+        ////$this->amacube->quarantine = new AmavisQuarantine($this->rc->config->get('amacube_db_dsn'), 
+        ////                                         $this->rc->config->get('amacube_amavis_host'), 
+        ////                                         $this->rc->config->get('amacube_amavis_port'));
+		// Process released
+		if (!empty($release)) {
+			if ($this->amacube->quarantine->release($release)) {
+				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_release');
+			}
+		}
+		// Process deleted
+		if (!empty($delete)) {
+			if ($this->amacube->quarantine->delete($delete)) {
+				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_delete');
+			}
+		}
+		// Feedback
+		////$this->feedback();
+		// Display quarantine
+        ////$this->rc->output->send('amacube.quarantine');
+    }
+
+	function feedback() {
+		// Collect errors from subclasses
+		foreach (array('config','quarantine','account') as $subclass) {
+			if (isset($this->amacube->$subclass) && !empty($this->amacube->$subclass->errors)) {
+				array_merge($this->amacube->errors,$this->amacube->$subclass->errors);
+			}
+		}
+		// Send first error or feedbacks to client
+		if (!empty($this->amacube->errors)) {
+			$this->rc->output->command('display_message', Q($this->gettext($this->amacube->errors[0])), 'error');
+		} elseif (!empty($this->amacube->feedback)) {
+			foreach ($this->amacube->feedback as $feed) {
+				if (!empty($feed)) {
+					$this->rc->output->command('display_message', Q($this->gettext($feed['message'])), $feed['type']);
+				}
+			}
+		}
+		
+	}
 
     // CONVENIENCE METHODS
     // This bloody html_checkbox class will always return checkboxes that are "checked"
@@ -506,7 +529,7 @@ class amacube extends rcube_plugin
     // so I used html::tag instead...
     function _show_checkbox($id, $checked = false)
     {
-        $attr_array = array('name' => '_'.$id,'id' => $id);
+        $attr_array = array('name' => $id,'id' => $id);
         if($checked) {
             $attr_array['checked'] = 'checked';
         }
@@ -515,10 +538,22 @@ class amacube extends rcube_plugin
         $box = html::tag('input',$attr_array);
         return $box;
     }
+    function _show_radio($id, $name, $value, $checked = false)
+    {
+        $attr_array = array('name' => $name,'id' => $id);
+        if ($checked) {
+            $attr_array['checked'] = 'checked';
+        }
+        //$box = new html_checkbox($attr_array);
+        $attr_array['type'] = 'radio';
+		$attr_array['value'] = $value;
+        $box = html::tag('input',$attr_array);
+        return $box;
+    }
     function _show_inputfield($id, $value)
     {
         $input = new html_inputfield(array(
-                'name' => '_'.$id, 
+                'name' => $id, 
                 'id' => $id,
                 'value' => $value,
                 'size'  =>  10

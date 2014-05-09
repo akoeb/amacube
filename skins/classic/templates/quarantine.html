@@ -1,0 +1,41 @@
+<roundcube:object name="doctype" value="html5" />
+<html>
+<head>
+<title><roundcube:object name="pagetitle" /></title>
+	<roundcube:include file="/includes/links.html" />
+	<link rel="stylesheet" type="text/css" href="/mail.css" />
+</head>
+<body class="noscroll">
+	<roundcube:include file="/includes/header.html" />
+	<!-- mainscreen -->
+	<div id="mainscreen">
+		<!-- toolbar -->
+		<div id="messagetoolbar" class="toolbar">
+			<roundcube:button command="plugin.amacube-quarantine-post" type="link" class="button checkmail" classAct="button checkmail" classSel="button checkmail pressed" domain="amacube" label="process" title="process_quarantine" />
+		</div>
+		<div id="pluginbody" class="uibox contentbox quarantine-pluginbody">
+			<div id="messagelistcontainer" class="boxlistcontent quarantine-messagelistcontainer">
+				<roundcube:object name="plugin.body" />
+			</div>
+			<!-- list footer -->
+			<div id="messagelistfooter" class="boxfooter">
+				<div id="processcontrols">
+					<roundcube:button command="plugin.amacube-quarantine-post" type="link" domain="amacube" label="process" title="process_quarantine" />
+				</div>
+				<div id="countcontrols" class="pagenav dark">
+					<roundcube:button command="plugin.lastpage" type="link" class="button lastpage disabled" classAct="button lastpage" classSel="button lastpage pressed" innerClass="inner" title="lastpage" content="" />
+					<roundcube:button command="plugin.nextpage" type="link" class="button nextpage disabled" classAct="button nextpage" classSel="button nextpage pressed" innerClass="inner" title="nextpage" content="" />
+					<roundcube:object name="plugin.countdisplay" class="countdisplay quarantine-countdisplay" />
+					<roundcube:button command="plugin.previouspage" type="link" class="button prevpage disabled" classAct="button prevpage" classSel="button prevpage pressed" innerClass="inner" title="previouspage" content="" />
+					<roundcube:button command="plugin.firstpage" type="link" class="button firstpage disabled" classAct="button firstpage" classSel="button firstpage pressed" innerClass="inner" title="firstpage" content="" />
+				</div>
+			</div>
+		</div>
+	</div>
+
+<roundcube:object name="plugin.footer" />
+
+<roundcube:include file="/includes/footer.html" />
+
+</body>
+</html>
