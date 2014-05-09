@@ -14,32 +14,41 @@ class amacube extends rcube_plugin
 
     function init()
     {
-    	$this->rc 					= rcmail::get_instance();
-		$this->amacube 				= new stdClass;
-		$this->amacube->errors		= array();
-		$this->amacube->feedback	= array();
-    	// Load config
+    	$this->rc 						= rcmail::get_instance();
+		$this->amacube 					= new stdClass;
+    	// Load plugin config
         $this->load_config();
-		// Load settings
+		// Amacube storage on rcmail instance
+		$this->rc->amacube 				= new stdClass;
+		$this->rc->amacube->errors 		= array();
+		$this->rc->amacube->feedback 	= array();
+		// Check accounts database for catchall enabled
+		if ($this->rc->config->get('amacube_accounts_db_dsn')) {
+			include_once('AccountConfig.php');
+			$this->amacube->account = new AccountConfig($this->rc->config->get('amacube_accounts_db_dsn'));
+			// Check for account filter
+			if ($this->amacube->account->initialized && isset($this->amacube->account->filter)) {
+				// Store on rcmail instance
+				$this->rc->amacube->filter 		= $this->amacube->account->filter;
+			}
+			// Check for account catchall
+			if ($this->amacube->account->initialized && isset($this->amacube->account->catchall)) {
+				// Store on rcmail instance
+				$this->rc->amacube->catchall 	= $this->amacube->account->catchall;
+			}
+		}
+		// Load amavis config
         include_once('AmavisConfig.php');
         $this->amacube->config = new AmavisConfig($this->rc->config->get('amacube_db_dsn'));
 		// Check for user & auto create option (disable plugin)
 		if (!$this->amacube->config->initialized && $this->rc->config->get('amacube_auto_create_user') !== true) { return; }
-		// Write default user & config
+		// Check for writing default user & config
 		if (!$this->amacube->config->initialized && $this->rc->config->get('amacube_auto_create_user') === true) {
 			// Check accounts database for filter enabled
-			if ($this->rc->config->get('amacube_accounts_db_dsn')) {
-				include_once('AccountConfig.php');
-				$this->amacube->account = new AccountConfig($this->rc->config->get('amacube_accounts_db_dsn'));
-				if ($this->amacube->account->initialized && $this->amacube->account->filter == false) {
-					// Explicitly denied: return
-					return;
-				}
-			}
-			if (!$this->amacube->config->write_to_db()) {
-				$this->amacube->errors[] = $this->amacube->config->errors[0];
-			} else {
-				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'policy_default_message');
+			if (isset($this->rc->amacube->filter) && $this->rc->amacube->filter == false) { return; }
+			// Write default user & config
+			if ($this->amacube->config->write_to_db()) {
+				$this->rc->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'policy_default_message');
 			}
 		}
 		// Add localization
@@ -277,23 +286,23 @@ class amacube extends rcube_plugin
 		}
         // Apply the levels post vars
         if (!is_numeric($spam_tag2_level) || $spam_tag2_level < -20 || $spam_tag2_level > 20) {
-            $this->amacube->errors[] = 'spam_tag2_level_error';
+            $this->rc->amacube->errors[] = 'spam_tag2_level_error';
         } else {
         	$this->amacube->config->policy_setting['spam_tag2_level'] = $spam_tag2_level;
         }
         if (!is_numeric($spam_kill_level) || $spam_kill_level < -20 || $spam_kill_level > 20) {
-            $this->amacube->errors[] = 'spam_kill_level_error';
+            $this->rc->amacube->errors[] = 'spam_kill_level_error';
         } else {
         	$this->amacube->config->policy_setting['spam_kill_level'] = $spam_kill_level;
         }
         if (!is_numeric($spam_quarantine_cutoff_level) || $spam_quarantine_cutoff_level < $this->amacube->config->policy_setting['spam_kill_level'] || $spam_kill_level > 1000) {
-            $this->amacube->errors[] = 'spam_quarantine_cutoff_level';
+            $this->rc->amacube->errors[] = 'spam_quarantine_cutoff_level_error';
         } else {
         	$this->amacube->config->policy_setting['spam_quarantine_cutoff_level'] = $spam_quarantine_cutoff_level;
         }
         // Verify policy config
         if ($this->amacube->config->verify_policy_array() && $this->amacube->config->write_to_db()) {
-			$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'config_saved');
+			$this->rc->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'config_saved');
         }
 
     }
@@ -310,6 +319,7 @@ class amacube extends rcube_plugin
                                                  $this->rc->config->get('amacube_amavis_port'));
 		// Parse form
 		if (get_input_value('_token', RCUBE_INPUT_POST, false)) { $this->quarantine_post(); }
+												 
 		$pagination = array();
 		if (!$ajax) {
 			$output 				= '';
@@ -359,7 +369,7 @@ class amacube extends rcube_plugin
 		}
 		if (!$ajax) {
 			// Store locally for template use (js include not loaded yet; command unavailable)
-			$this->pagination 		= $string;
+			$this->rc->amacube->pagecount_string = $string;
 		} else {
 			$this->rc->output->command('amacube.messagecount',$string);
 		}
@@ -453,16 +463,12 @@ class amacube extends rcube_plugin
 
 	function quarantine_display_count() {
 
-		return html::span(array('id' => 'rcmcountdisplay', 'class' => 'countdisplay quarantine-countdisplay'),$this->pagination);
+		return html::span(array('id' => 'rcmcountdisplay', 'class' => 'countdisplay quarantine-countdisplay'),$this->rc->amacube->pagecount_string);
 
 	}
 
     function quarantine_post() {
 
-		// Prepare for quarantine display
-		////$this->register_handler('plugin.body', array($this,'quarantine_display'));
-		////$this->register_handler('plugin.countdisplay', array($this, 'quarantine_display_count'));
-        ////$this->rc->output->set_pagetitle(Q($this->gettext('quarantine_pagetitle')));
 		// Process quarantine
         $delete = array();
         $release = array();
@@ -475,46 +481,30 @@ class amacube extends rcube_plugin
 		// Intersection error (should no longer happen with radio inputs but still)
         $intersect = array_intersect($delete, $release);
         if (is_array($intersect) && count($intersect) > 0) {
-			$this->amacube->errors[] = 'intersection_error';
-			$this->feedback();
+			$this->rc->amacube->errors[] = 'intersection_error';
 			$this->rc->output->send('amacube.quarantine');
             return;
         }
-        // Load quarantine class
-        ////include_once('AmavisQuarantine.php');
-        ////$this->amacube->quarantine = new AmavisQuarantine($this->rc->config->get('amacube_db_dsn'), 
-        ////                                         $this->rc->config->get('amacube_amavis_host'), 
-        ////                                         $this->rc->config->get('amacube_amavis_port'));
 		// Process released
 		if (!empty($release)) {
 			if ($this->amacube->quarantine->release($release)) {
-				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_release');
+				$this->rc->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_release');
 			}
 		}
 		// Process deleted
 		if (!empty($delete)) {
 			if ($this->amacube->quarantine->delete($delete)) {
-				$this->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_delete');
+				$this->rc->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'success_delete');
 			}
 		}
-		// Feedback
-		////$this->feedback();
-		// Display quarantine
-        ////$this->rc->output->send('amacube.quarantine');
     }
 
 	function feedback() {
-		// Collect errors from subclasses
-		foreach (array('config','quarantine','account') as $subclass) {
-			if (isset($this->amacube->$subclass) && !empty($this->amacube->$subclass->errors)) {
-				array_merge($this->amacube->errors,$this->amacube->$subclass->errors);
-			}
-		}
 		// Send first error or feedbacks to client
-		if (!empty($this->amacube->errors)) {
-			$this->rc->output->command('display_message', Q($this->gettext($this->amacube->errors[0])), 'error');
-		} elseif (!empty($this->amacube->feedback)) {
-			foreach ($this->amacube->feedback as $feed) {
+		if (!empty($this->rc->amacube->errors)) {
+			$this->rc->output->command('display_message', Q($this->gettext($this->rc->amacube->errors[0])), 'error');
+		} elseif (!empty($this->rc->amacube->feedback)) {
+			foreach ($this->rc->amacube->feedback as $feed) {
 				if (!empty($feed)) {
 					$this->rc->output->command('display_message', Q($this->gettext($feed['message'])), $feed['type']);
 				}

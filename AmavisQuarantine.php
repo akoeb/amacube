@@ -73,7 +73,7 @@ class AmavisQuarantine extends AmacubeAbstract
         }
 		// Error check
         if ($error = $this->db_conn->is_error()) {
-			$this->errors[] = 'db_query_error';
+			$this->rc->amacube->errors[] = 'db_query_error';
 			write_log('errors','AMACUBE: Database query error: '.$error);
 			return false;
 		}
@@ -112,7 +112,7 @@ class AmavisQuarantine extends AmacubeAbstract
 	            $res = $this->db_conn->query($query_start.$table.$query_end, $mails); 
 				// Error check
 		        if ($error = $this->db_conn->is_error()) {
-					$this->errors[] = 'db_delete_error';
+					$this->rc->amacube->errors[] = 'db_delete_error';
 					write_log('errors','AMACUBE: Delete: Database error: '.$error);
 				}
 	        }
@@ -140,8 +140,8 @@ class AmavisQuarantine extends AmacubeAbstract
 			$error			= false;
 			// Error check
 	        if ($error = $this->db_conn->is_error()) {
-				$this->errors[] = 'Database query error.';
-				write_log('errors','AMACUBE: Release: Database error: '.$error);
+				$this->rc->amacube->errors[] = 'db_query_error';
+				write_log('errors','AMACUBE: Database query error: '.$error);
 				return false;
 			}
 	        // Create array of commands to submit to amavis release
@@ -186,7 +186,7 @@ class AmavisQuarantine extends AmacubeAbstract
 	                }
 	                else {
 						// Error check
-						$this->errors[] = $error = 'release_error';
+						$this->rc->amacube->errors[] = $error = 'release_error';
 						write_log('errors','AMACUBE: Release: Socket write error');
 	                }
 	                //write_log('errors','AMACUBE: Amavis said: '.str_replace("\r\n","_CR_NL_",$answer));
@@ -194,13 +194,13 @@ class AmavisQuarantine extends AmacubeAbstract
 	            fclose ($fp);
 	        } else {
 				// Error check
-				$this->errors[] = $error = 'release_error';
+				$this->rc->amacube->errors[] = $error = 'release_error';
 	            write_log('errors',"AMACUBE: Release: Socket open error: $errstr ($errno)\n");
 	        }
 	        $this->delete($success_ids);
 	        if (count($error_ids) > 0) {
 				// Error check
-				$this->errors[] = $error = 'release_error';
+				$this->rc->amacube->errors[] = $error = 'release_error';
 	            write_log('errors','AMACUBE: Release: Error responses: '. http_build_query($error_ids));
 	        }
 			if ($error) { return false; }

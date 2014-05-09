@@ -77,9 +77,6 @@ if (window.rcmail) {
 	// Init buttons & commands
     rcmail.addEventListener('init', function(evt) {
         if (evt.task == 'settings') {
-	        // Settings command
-	        ////rcmail.register_command('plugin.amacube-settings', function() { rcmail.goto_url('plugin.amacube-settings'); }, true);
-	        //rcmail.register_command('plugin.filter-settings', function() { rcmail.goto_url('filter-settings'); }, true);
 	        // Settings post command
 	        rcmail.register_command('plugin.amacube-settings-post', function() { rcmail.gui_objects.amacubeform.submit(); }, true);
         }

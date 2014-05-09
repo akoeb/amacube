@@ -16,15 +16,15 @@ class AccountConfig extends AmacubeAbstract
 {
     // User config
     public 	$initialized							= false;	// User record exists in database
-    public	$catchall								= false;
-	public	$filter									= false;
+    public	$catchall								= null;
+	public	$filter									= null;
 
     // Constructor
     function __construct($db_config) {
         // Call constructor of the super class to initialize db connection:
         parent::__construct($db_config);
 		// Check config
-		$this->get_account();
+		$this->initialized = $this->get_account();
 		
     }
 	
@@ -55,18 +55,26 @@ class AccountConfig extends AmacubeAbstract
 						$query .= " FROM $table_account WHERE $table_account.$field_account = ? ";
 				        $res = $this->db_conn->query($query, $this->user_email);
 				        if ($error = $this->db_conn->is_error()) {
-							$this->errors[] = 'db_query_error';
+							$this->rc->amacube->errors[] = 'db_query_error';
 							write_log('errors','AMACUBE: Database query error: '.$error);
+							return false;
 						}
 				        if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
-				        	$this->initialized 	= true;
 							// Check filter
-							if (isset($res_array[$field_account_filter]) && ($res_array[$field_account_filter] == 1 || $res_array[$field_account_filter] == 'Y' || $res_array[$field_account_filter])) {
-								$this->filter 	= true;
+							if (isset($res_array[$field_account_filter])) {
+								if ($res_array[$field_account_filter] == 1 || $res_array[$field_account_filter] == 'Y' || $res_array[$field_account_filter]) {
+									$this->filter 	= true;
+								} else {
+									$this->filter 	= false;
+								}
 							}
 							// Check catchall
-							if (isset($res_array[$field_account_catchall]) && ($res_array[$field_account_catchall] == 1 || $res_array[$field_account_catchall] == 'Y' || $res_array[$field_account_catchall])) {
-								$this->catchall = true;
+							if (isset($res_array[$field_account_catchall])) {
+								if ($res_array[$field_account_catchall] == 1 || $res_array[$field_account_catchall] == 'Y' || $res_array[$field_account_catchall]) {
+									$this->catchall = true;
+								} else {
+									$this->catchall = false;
+								}
 							}
 							return true;
 				        }

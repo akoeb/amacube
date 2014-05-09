@@ -83,4 +83,9 @@ $labels['to'] = 'to';
 $labels['of'] = 'of';
 $labels['success_release'] = 'Selected messages have been released.';
 $labels['success_delete'] = 'Selected messages have been deleted.';
+
+$labels['db_conect_error'] = 'Database connection error.';
+$labels['db_query_error'] = 'Database query error.';
+$labels['db_policy_error'] = 'Database policy error.';
+$labels['spam_quarantine_cutoff_level_error'] = 'Spam cutoff level must be an integer number between 20 and 1001';
 ?>

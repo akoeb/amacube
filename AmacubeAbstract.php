@@ -48,7 +48,7 @@ class AmacubeAbstract {
         $this->db_conn->db_connect('w');
 		// Error check
         if ($error = $this->db_conn->is_error()) {
-			$this->errors[] = 'db_connect_error';
+			$this->rc->amacube->errors[] = 'db_connect_error';
 			write_log('errors','AMACUBE: Database connect error: '.$error);
 			return false;
 		}
