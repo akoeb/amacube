@@ -107,13 +107,15 @@ class AmavisConfig extends AmacubeAbstract
     {
         // Call constructor of the super class
         parent::__construct($db_config);
+		// Check for account catchall and adjust user_email accordingly
+        if (isset($this->rc->amacube->catchall) && $this->rc->amacube->catchall == true) {
+        	$this->user_email	= substr(strrchr($this->user_email,"@"),0);
+        }
         // Read config from DB
         $this->initialized 	= $this->read_from_db();
-		// Verify policy config
-        if (!$this->verify_policy_array()) {
-            // TODO: something is dead wrong, database settngs do not verify
-            // FiXME: throw error
-            write_log('errors',"AMACUBE: Policy error: Verification from database failed: ".implode(',',$this->errors));
+		// Verify policy config from database
+        if ($this->initialized) {
+        	$this->verify_policy_array();
         }
     }
     

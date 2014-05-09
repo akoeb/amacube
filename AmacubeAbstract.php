@@ -27,9 +27,9 @@ class AmacubeAbstract {
         $this->db_config 		= $db_config;
 		// RCMail
         $this->rc 				= rcmail::get_instance();
-        //$this->rc 				= $this->plugin->rc;
         // This plugin assumes the the username equals the email address we want to have amavis checking for
 		$this->user_email		= $this->rc->user->data['username'];
+
     }
 
     // Connect to DB

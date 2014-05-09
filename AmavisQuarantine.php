@@ -23,6 +23,10 @@ class AmavisQuarantine extends AmacubeAbstract
     {
         // Call constructor of the super class
         parent::__construct($db_config);
+		// Check for account catchall and adjust user_email accordingly
+        if (isset($this->rc->amacube->catchall) && $this->rc->amacube->catchall == true) {
+        	$this->user_email	= substr(strrchr($this->user_email,"@"),0);
+        }
 		// Apply amavis database settings
         $this->amavis_host = $amavis_host;
         $this->amavis_port = $amavis_port;
@@ -55,8 +59,8 @@ class AmavisQuarantine extends AmacubeAbstract
                         LEFT JOIN quarantine AS quar   ON quar.mail_id = msgs.mail_id
               WHERE msgs.content IS NOT NULL 
               AND msgs.quar_type = 'Q'";
-        if ($this->catchall) {
-        	$id		= '@'.$this->user_domain;
+        if ($this->rc->amacube->catchall) {
+        	$id		= '%'.$this->user_email;
         	$query .= "AND recip.email LIKE ?";
         } else {
         	$id		= $this->user_email;
