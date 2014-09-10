@@ -1,0 +1,37 @@
+{
+    "name": "roundcube/amacube",
+    "type": "roundcube-plugin",
+    "version": "0.2.1",
+    "license": "GPL-3.0+",
+    "authors": [
+        {
+            "name": "Alexander Koeb",
+            "email": "nerdkram@koeb.me",
+            "role": "Developer"
+        },
+        {
+            "name": "Sebastiaan Klassen",
+            "email": "sebastiaan.klassen@talzia.nl",
+            "role": "Developer"
+        },
+        {
+            "name": "Goran Juri",
+            "email": "goran@ingop.hr",
+            "role": "Developer"
+        },
+        {
+            "name": "Troy Carpenter",
+            "email": "troy@carpenter.cx",
+            "role": "Developer"
+        }
+    ],	
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://github.com/troycarpenter/amacube/tree/development"
+        }
+    ],
+    "require": {
+        "roundcube/plugin-installer": ">=0.1.3"
+    }
+}
