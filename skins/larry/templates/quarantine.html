@@ -1,0 +1,41 @@
+<roundcube:object name="doctype" value="html5" />
+<html>
+<head>
+<title><roundcube:object name="pagetitle" /></title>
+	<roundcube:include file="/includes/links.html" />
+	<link rel="stylesheet" type="text/css" href="/mail.css" />
+</head>
+<body class="noscroll">
+	<roundcube:include file="/includes/header.html" />
+	<!-- mainscreen -->
+	<div id="mainscreen">
+		<!-- toolbar -->
+		<div id="messagetoolbar" class="toolbar">
+			<roundcube:button command="plugin.amacube-quarantine-post" type="link" class="button checkmail" classAct="button checkmail" classSel="button checkmail pressed" domain="amacube" label="process" title="process_quarantine" />
+		</div>
+                <style> table.messagelist { width:auto; } </style>
+		<div id="pluginbody" class="uibox contentbox quarantine-pluginbody">
+			<div id="messagelistcontainer" class="boxlistcontent quarantine-messagelistcontainer">
+				<roundcube:object name="plugin.body" />
+			</div>
+			<!-- list footer -->
+			<div id="messagelistfooter">
+				<div id="countcontrols" class="pagenav dark">
+					<roundcube:object name="plugin.countdisplay" class="countdisplay quarantine-countdisplay" />
+					<span class="pagenavbuttons">
+						<roundcube:button command="plugin.firstpage" type="link" class="button firstpage disabled" classAct="button firstpage" classSel="button firstpage pressed" innerClass="inner" title="firstpage" content="|&amp;lt;" />
+						<roundcube:button command="plugin.previouspage" type="link" class="button prevpage disabled" classAct="button prevpage" classSel="button prevpage pressed" innerClass="inner" title="previouspage" content="&amp;lt;" />
+						<roundcube:button command="plugin.nextpage" type="link" class="button nextpage disabled" classAct="button nextpage" classSel="button nextpage pressed" innerClass="inner" title="nextpage" content="&amp;gt;" />
+						<roundcube:button command="plugin.lastpage" type="link" class="button lastpage disabled" classAct="button lastpage" classSel="button lastpage pressed" innerClass="inner" title="lastpage" content="&amp;gt;|" />
+					</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+<roundcube:object name="plugin.footer" />
+
+<roundcube:include file="/includes/footer.html" />
+
+</body>
+</html>

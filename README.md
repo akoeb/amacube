@@ -77,19 +77,25 @@ options.
 * drop all the files of the plugin into this directory
 * create a amacube/config.inc.php file with mysql and amavis settings filled out correctly. A template with the extension -dist is supplied.
 * add amacube to the $rcmail_config['plugins'] array in roundcubes config/main.inc.php
+* create Amacube database as specified in amacube.mysql.schema
 
 ## TODO
 
 This is a uncomplete list of things that need to be done with this plugin
-* pagination in the quarantine list
-* proper error handling (see all those FIXME statements in the code)
-* eye candy
-* lots of help and information texts
+* Add functionality similar to Mailzu (http://sourceforge.net/projects/mailzu/)
+  * Add left side menu area
+  * Add "show summary"
+  * Add Administrator functionality
+  * Add Site quarantine summary
+  * Add Site quarantine list
+  * Add "click on email title" to see email content
+* Improve item selection mechanism
+
 
 ## Version
 
-0.1.1 - initial release, functionally working, but ugly and lacking informational texts
-
+0.2.1 - based on Roundcube 1.0.x support. Support for Kolab styles.
+See CHANGELOG
 
 ## License
 
@@ -98,3 +104,6 @@ GPLv3 - see COPYING file for full license statement
 ## Author
 
 Alexander Köb <nerdkram@koeb.me>
+seb <sebastiaan.klaasen@talzia.nl>
+Goran Juri <goran@ingop.hr>
+Troy Carpenter <troy@carpenter.cx>

@@ -1,0 +1,49 @@
+0.2.1: 
+Troy Carpenter <troy@carpenter.cx>
+* Slightly document new database, enough to get plugin running again.
+* Modify README.md TODO to reflect what I plan to implement.
+* Modify quarantine.html with an inline style to make it work with Kolab
+* Prevent various mail fields (specifically subject) from being a substring.
+
+Previous Versions (not sure on the numbering scheme):
+0.2.0:
+seb <sebastiaan.klaasen@talzia.nl>
+    Implemented account catchall feature
+    Simplified error reporting/feedback by storing messages on rcmail instance
+      shared between amacube classes
+    Updated to work with RC 1.0.0
+    Optimized for the default larry skin
+    Added quarantine task
+    Added pagintation to quarantine
+    Added several new features
+    Fixed database error reporting
+    Fixed LIMIT database error in list_quarantines
+    Fixed database error reporting
+
+0.1.x:
+Goran Jurić <goran@ingop.hr>
+    Fixed Quarantine SQL query
+    On my installation of amavisd-new content field is in the msgs table not 
+      msgrcpt
+
+Alexander Köb <nerdkram@koeb.me>
+    try fenced code blocks
+    fix a typo
+    increased minor version number
+    Added localization
+    added info graphic
+    quarantine button links to mail task
+    added email address to source code
+    escape hashmarks to fix formaescape hashmarks to fix format
+    Version 0.1 - functionally working, lots of texts and eye candy still 
+      missing
+    finished saving of settings
+    boilerplate for save added
+    updated todos
+    added form, prefilled with database values
+    added AmavisSettings class stub and a couple of notes to the Readme
+    created dummy page with some user information
+    about to start writing the code ;-)
+    added mysql.schema, stolen from the amavis documentation
+    base readme template
+    Initial commit

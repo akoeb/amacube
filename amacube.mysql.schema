@@ -1,0 +1,15 @@
+Newer versions of this plugin rely on a database that has one table with the 
+following structure:
+
+CREATE TABLE IF NOT EXISTS `mailbox` (
+  `email` varbinary(255) NOT NULL,
+  `catchall` int(1) NOT NULL DEFAULT '1',
+  `filter` int(1) NOT NULL DEFAULT '1'
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+You can put this table in your existing amavis database, or recreate a new one.
+
+I don't think anything is being set in this database...after creating it and 
+running for a while, I still don't see any entries...but there were many 
+database errors before creating and setting that database in the config file.
+

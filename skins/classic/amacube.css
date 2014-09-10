@@ -1,0 +1,88 @@
+/*
+#taskbar a.button-quarantine span.button-inner{
+	background:url(quarantine.png) 0 0 no-repeat;
+	height:19px;
+}
+#taskbar a.button-quarantine:hover span.button-inner,
+#taskbar a.button-quarantine.button-selected span.button-inner {
+	background:url(quarantine.png) 0 -24px no-repeat;
+	height:19px
+}
+*/
+#preferences-box.amacube-preferences-box {
+	left:0px;
+}
+#preferences-details fieldset legend {
+	position: relative;
+	display: block;
+}
+#preferences-details table.propform td {
+	height:26px;
+	line-height:26px;
+	vertical-align:middle; 
+}
+#preferences-details table.propform td input[type=checkbox], #preferences-details table.propform td input[type=radio] {
+	vertical-align:middle;
+	margin-top:2px;
+	margin-bottom:2px;
+}
+#pluginbody.quarantine-pluginbody {
+	top:0px;
+    background-color: #F9F9F9;
+    border: 1px solid #999999;
+    bottom: 0;
+    overflow: hidden;
+    position: absolute;
+    width: 100%;
+}
+#pluginbody #messagelistcontainer {
+	top:0px;
+}
+#pluginbody.quarantine-pluginbody table.messagelist thead tr td {
+	padding-left:0px;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.release {
+	width:100px;
+	text-align:center;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.delete {
+	width:100px;
+	text-align:center;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.received {
+	width:150px;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.sender {
+	width:250px;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.type {
+	width:100px;
+}
+#pluginbody.quarantine-pluginbody table.messagelist tr td.level {
+	width:100px;
+}
+#pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols {
+    font-size: 11px;
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    white-space: nowrap;
+}
+#pluginbody.quarantine-pluginbody #messagelistfooter #processcontrols {
+	font-size: 11px;
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    white-space: nowrap;
+}
+#pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols a.button, #pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols a.buttonPas {
+    float: right;
+}
+#pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols a.disabled {
+    opacity: 0.35;
+}
+#pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols span {
+	padding-left:5px;
+	padding-right:5px;
+    float: right;
+}

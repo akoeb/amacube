@@ -1,0 +1,52 @@
+#taskbar a.button-quarantine span.button-inner{
+	background:url(quarantine.png) 0 0 no-repeat;
+	height:19px;
+}
+#taskbar a.button-quarantine:hover span.button-inner,
+#taskbar a.button-quarantine.button-selected span.button-inner {
+	background:url(quarantine.png) 0 -24px no-repeat;
+	height:19px
+}
+#preferences-box.amacube-preferences-box {
+	left:0px;
+}
+#preferences-details fieldset legend {
+	position: relative;
+	display: block;
+}
+#preferences-details table.propform td {
+	height:26px;
+	line-height:26px;
+	vertical-align:middle; 
+}
+#preferences-details table.propform td input[type=checkbox], #preferences-details table.propform td input[type=radio] {
+	vertical-align:middle;
+	margin-top:2px;
+	margin-bottom:2px;
+}
+#pluginbody.quarantine-pluginbody {
+	top:42px;
+}
+#pluginbody.quarantine-pluginbody #messagelist thead tr td {
+	padding:7px;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.release {
+	width:100px;
+	text-align:center;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.delete {
+	width:100px;
+	text-align:center;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.received {
+	width:150px;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.sender {
+	width:250px;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.type {
+	width:100px;
+}
+#pluginbody.quarantine-pluginbody #messagelist tr td.level {
+	width:100px;
+}
