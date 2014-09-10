@@ -49,9 +49,9 @@ class AmavisQuarantine extends AmacubeAbstract
               ds AS delivery_status, 
               bspam_level AS level, 
               size,
-              SUBSTRING(sender.email,1,40) AS sender,
-              SUBSTRING(recip.email,1,40)  AS recipient,
-              SUBSTRING(msgs.subject,1,40) AS subject,
+              sender.email AS sender,
+              recip.email AS recipient,
+              msgs.subject AS subject,
               msgs.mail_id AS id
               FROM msgs LEFT JOIN msgrcpt              ON msgs.mail_id=msgrcpt.mail_id
                         LEFT JOIN maddr      AS sender ON msgs.sid=sender.id
