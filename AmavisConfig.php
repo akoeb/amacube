@@ -36,7 +36,7 @@ class AmavisConfig extends AmacubeAbstract
         'bypass_spam_checks' 			=> false,  	// bool
         'bypass_banned_checks' 			=> false,	// bool
         'bypass_header_checks' 			=> false,	// bool
-        'spam_modifies_subj' 			=> false,  	// bool
+//        'spam_modifies_subj' 			=> false,  	// bool
         'spam_tag_level' 				=> -999,    // float
         'spam_tag2_level' 				=> 6,       // float
         'spam_tag3_level' 				=> 12,      // float
@@ -65,7 +65,7 @@ class AmavisConfig extends AmacubeAbstract
         'bypass_spam_checks',
         'bypass_banned_checks',
         'bypass_header_checks',
-        'spam_modifies_subj',
+//        'spam_modifies_subj',
     );
     private static $tosql_settings = array(
         'virus_quarantine_to',
@@ -135,7 +135,7 @@ class AmavisConfig extends AmacubeAbstract
         if (is_bool($array['bypass_spam_checks']) === false) { array_push($errors, 'bypass_spam_checks'); }
         if (is_bool($array['bypass_banned_checks']) === false) { array_push($errors, 'bypass_banned_checks'); }
         if (is_bool($array['bypass_header_checks']) === false) { array_push($errors, 'bypass_header_checks'); }
-        if (is_bool($array['spam_modifies_subj']) === false) { array_push($errors, 'spam_modifies_subj'); }
+//        if (is_bool($array['spam_modifies_subj']) === false) { array_push($errors, 'spam_modifies_subj'); }
         if (is_bool($array['virus_quarantine_to']) === false) { array_push($errors, 'virus_quarantine_to'); }
         if (is_bool($array['spam_quarantine_to']) === false) { array_push($errors, 'spam_quarantine_to'); }
         if (is_bool($array['banned_quarantine_to']) === false) { array_push($errors, 'banned_quarantine_to'); }
