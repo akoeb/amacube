@@ -41,13 +41,13 @@ class AmavisQuarantine extends AmacubeAbstract
 		}
         $query = "
             SELECT
-              UNIX_TIMESTAMP()-msgs.time_num AS age, 
-              msgs.time_num AS received, 
+              UNIX_TIMESTAMP()-msgs.time_num AS age,
+              msgs.time_num AS received,
               SUBSTRING(policy,1,2) as pb,
-              msgs.content AS content, 
-              dsn_sent AS dsn, 
-              ds AS delivery_status, 
-              bspam_level AS level, 
+              msgs.content AS content,
+              dsn_sent AS dsn,
+              ds AS delivery_status,
+              bspam_level AS level,
               size,
               sender.email AS sender,
               recip.email AS recipient,
@@ -57,7 +57,8 @@ class AmavisQuarantine extends AmacubeAbstract
                         LEFT JOIN maddr      AS sender ON msgs.sid=sender.id
                         LEFT JOIN maddr      AS recip  ON msgrcpt.rid=recip.id
                         LEFT JOIN quarantine AS quar   ON quar.mail_id = msgs.mail_id
-              WHERE msgs.content IS NOT NULL 
+              WHERE msgs.content IS NOT NULL
+              AND quar.chunk_ind = 1
               AND msgs.quar_type = 'Q'";
         if ($this->rc->amacube->catchall) {
         	$id		= '%'.$this->user_email;
