@@ -56,7 +56,7 @@ class amacube extends rcube_plugin
 		// Register tasks & actions
         $this->register_action('plugin.amacube-settings', array($this, 'settings_init'));
 		$this->register_task('quarantine');
-		$this->register_action('plugin.amacube-quarantine', array($this, 'quarantine_init'));
+		$this->register_action('amacube-quarantine', array($this, 'quarantine_init'));
 		// Initialize GUI
         $this->add_hook('startup', array($this, 'gui_init'));
 		// Send feedback
@@ -425,7 +425,7 @@ class amacube extends rcube_plugin
 	            'id' => 'quarantineform',
 	            'name' => 'quarantineform',
 	            'method' => 'post',
-	            'action' => './?_task=quarantine&_action=plugin.amacube-quarantine',
+	            'action' => './?_task=quarantine&_action=amacube-quarantine',
 			), $messages_table->show());
 			// Add table container form to output
 			$output .= $output_table_form;
