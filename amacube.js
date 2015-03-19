@@ -47,7 +47,7 @@ rcube_webmail.prototype.amacube = {
 				var obj = { page : rcmail.env.pagecount, msgcount: rcmail.env.msgcount };
 				break;
 		}
-		rcmail.http_post('quarantine/plugin.amacube-quarantine', obj);
+		rcmail.http_post('quarantine/amacube-quarantine', obj);
 	},
 	// Function for updating the list of quarantined messages
 	messagelist : function(data) {
@@ -70,7 +70,7 @@ if (window.rcmail) {
 	// Catch clicks to quarantine task button and apply action to url
     rcmail.addEventListener('beforeswitch-task', function(prop) {
         if (prop == 'quarantine') {
-            rcmail.redirect(rcmail.url('quarantine/plugin.amacube-quarantine'), false);
+            rcmail.redirect(rcmail.url('quarantine/amacube-quarantine'), false);
             return false;
 		}
 	});
@@ -82,7 +82,7 @@ if (window.rcmail) {
         }
 		if (evt.task == 'quarantine') {
 			// Quarantine post command
-	        rcmail.register_command('plugin.amacube-quarantine-post', function() { rcmail.gui_objects.quarantineform.submit(); }, true);
+	        rcmail.register_command('amacube-quarantine-post', function() { rcmail.gui_objects.quarantineform.submit(); }, true);
 			// Pagination commands
 			if (rcmail.env.page > 1) {
 				// Enable first & previous
