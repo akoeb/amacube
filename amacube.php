@@ -1,10 +1,5 @@
 <?php
 
-error_reporting(E_ALL);
-ini_set('display_errors', 'Off');
-ini_set("log_errors", 1);
-ini_set("error_log", "/var/www/wms/var/www/hostingmanagement/webmail/logs/errors");
-
 class amacube extends rcube_plugin
 {
     // All tasks excluding 'login' and 'logout'
