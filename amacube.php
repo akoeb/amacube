@@ -89,20 +89,20 @@ class amacube extends rcube_plugin
     {
         // Use standard plugin page template
         $this->register_handler('plugin.body', array($this, 'settings_display'));
-        $this->rc->output->set_pagetitle(Q($this->gettext('filter_settings_pagetitle')));
+        $this->rc->output->set_pagetitle(rcube_utils::rep_specialchars_output($this->gettext('filter_settings_pagetitle'), 'html', 'strict', true));
         $this->rc->output->send('plugin');
     }
     // Initialize quarantine task
     function quarantine_init()
     {
-		if (get_input_value('_remote', RCUBE_INPUT_POST, false) == 1) {
+		if (rcube_utils::get_input_value('_remote', rcube_utils::INPUT_POST, false) == 1) {
 			// Client pagination request
 			$this->quarantine_display(true);
 		} else {
 			// Client page request
 	        $this->register_handler('plugin.countdisplay', array($this, 'quarantine_display_count'));
 	        $this->register_handler('plugin.body', array($this, 'quarantine_display'));
-	        $this->rc->output->set_pagetitle(Q($this->gettext('quarantine_pagetitle')));
+	        $this->rc->output->set_pagetitle(rcube_utils::rep_specialchars_output($this->gettext('quarantine_pagetitle'), 'html', 'strict', true));
 			// Use amacube quarantine page template
 			$this->rc->output->send('amacube.quarantine');
 		}
@@ -116,12 +116,12 @@ class amacube extends rcube_plugin
         	$this->amacube->config = new AmavisConfig($this->rc->config->get('amacube_db_dsn'));
 		}
 		// Parse form
-		if (get_input_value('_token', RCUBE_INPUT_POST, false)) { $this->settings_post(); }
+		if (rcube_utils::get_input_value('_token', rcube_utils::INPUT_POST, false)) { $this->settings_post(); }
 		
         // Create output
         $output = '';
 		// Add header to output
-		$output .= html::tag('h1', array('class' => 'boxtitle'), Q($this->gettext('filter_settings_pagetitle')));
+		$output .= html::tag('h1', array('class' => 'boxtitle'), rcube_utils::rep_specialchars_output($this->gettext('filter_settings_pagetitle'), 'html', 'strict', true));
 		
         // Create output : table (checks)
         $output_table = new html_table(array('cols' => 2, 'cellpadding' => 3, 'class' => 'propform'));
@@ -243,12 +243,12 @@ class amacube extends rcube_plugin
     function settings_post()
     {
         // Get the checks post vars
-        $activate_spam_check 			= get_input_value('activate_spam_check', RCUBE_INPUT_POST, false);
-        $activate_virus_check 			= get_input_value('activate_virus_check', RCUBE_INPUT_POST, false);
+        $activate_spam_check 			= rcube_utils::get_input_value('activate_spam_check', rcube_utils::INPUT_POST, false);
+        $activate_virus_check 			= rcube_utils::get_input_value('activate_virus_check', rcube_utils::INPUT_POST, false);
 		// Get the levels post vars
-        $spam_tag2_level 				= get_input_value('spam_tag2_level', RCUBE_INPUT_POST, false);
-        $spam_kill_level 				= get_input_value('spam_kill_level', RCUBE_INPUT_POST, false);
-		$spam_quarantine_cutoff_level	= get_input_value('spam_quarantine_cutoff_level', RCUBE_INPUT_POST, false);
+        $spam_tag2_level 				= rcube_utils::get_input_value('spam_tag2_level', rcube_utils::INPUT_POST, false);
+        $spam_kill_level 				= rcube_utils::get_input_value('spam_kill_level', rcube_utils::INPUT_POST, false);
+		$spam_quarantine_cutoff_level	= rcube_utils::get_input_value('spam_quarantine_cutoff_level', rcube_utils::INPUT_POST, false);
         // Apply the checks post vars
         if (!empty($activate_spam_check)) { $this->amacube->config->policy_setting['bypass_spam_checks'] = false;}
         else { $this->amacube->config->policy_setting['bypass_spam_checks'] = true; }
@@ -256,7 +256,7 @@ class amacube extends rcube_plugin
         else { $this->amacube->config->policy_setting['bypass_virus_checks'] = true; }
 		// Apply the delivery post vars
 		foreach (array('spam_delivery','virus_delivery','banned_delivery','badheader_delivery') as $input) {
-			$method 	= get_input_value($input, RCUBE_INPUT_POST, false);
+			$method 	= rcube_utils::get_input_value($input, rcube_utils::INPUT_POST, false);
 			if ($method) {
 				$delivery 	= explode('_', $input);
 				$delivery 	= $delivery[0];
@@ -313,7 +313,7 @@ class amacube extends rcube_plugin
                                                  $this->rc->config->get('amacube_amavis_host'), 
                                                  $this->rc->config->get('amacube_amavis_port'));
 		// Parse form
-		if (get_input_value('_token', RCUBE_INPUT_POST, false)) { $this->quarantine_post(); }
+		if (rcube_utils::get_input_value('_token', rcube_utils::INPUT_POST, false)) { $this->quarantine_post(); }
 												 
 		$pagination = array();
 		if (!$ajax) {
@@ -325,8 +325,8 @@ class amacube extends rcube_plugin
 		} else {
 			$output 				= array();
 			// Get paged quarantines
-			$pagination['current']	= get_input_value('page', RCUBE_INPUT_POST, false) ?: 1;
-			$pagination['total'] 	= get_input_value('msgcount', RCUBE_INPUT_POST, false);
+			$pagination['current']	= rcube_utils::get_input_value('page', rcube_utils::INPUT_POST, false) ?: 1;
+			$pagination['total'] 	= rcube_utils::get_input_value('msgcount', rcube_utils::INPUT_POST, false);
 			if (!$pagination['current'] || !$pagination['total']) {	return; }
 			
 			$pagination['current']	= (int) $pagination['current'];
@@ -358,9 +358,9 @@ class amacube extends rcube_plugin
 		$pagination['begin'] 		= ($pagination['start']+1);
 		$pagination['end'] 			= ($pagination['total'] <= $pagination['size']) ? $pagination['total'] : (($pagination['stop'] > $pagination['total']) ? $pagination['total'] : $pagination['stop']);
 		if (count($quarantines) == 0) {
-			$string					= Q($this->gettext('quarantine_no_result'));
+			$string					= rcube_utils::rep_specialchars_output($this->gettext('quarantine_no_result'), 'html', 'strict', true);
 		} else {
-			$string					= Q($this->gettext('messages')).' '.$pagination['begin'].' '.Q($this->gettext('to')).' '.$pagination['end'].' '.Q($this->gettext('of')).' '.$pagination['total'];
+			$string					= rcube_utils::rep_specialchars_output($this->gettext('messages'), 'html', 'strict', true).' '.$pagination['begin'].' '.rcube_utils::rep_specialchars_output($this->gettext('to'), 'html', 'strict', true).' '.$pagination['end'].' '.rcube_utils::rep_specialchars_output($this->gettext('of'), 'html', 'strict', true).' '.$pagination['total'];
 		}
 		if (!$ajax) {
 			// Store locally for template use (js include not loaded yet; command unavailable)
@@ -381,13 +381,13 @@ class amacube extends rcube_plugin
 	        	'class' 			=> 'records-table messagelist sortheader fixedheader quarantine-messagelist'
 			));
 	        // Create output : table : headers
-	        $messages_table->add_header('release',Q($this->gettext('release')));
-	        $messages_table->add_header('delete',Q($this->gettext('delete')));
-	        $messages_table->add_header('received',Q($this->gettext('received')));
-	        $messages_table->add_header('subject',Q($this->gettext('subject')));
-	        $messages_table->add_header('sender',Q($this->gettext('sender')));
-	        $messages_table->add_header('type',Q($this->gettext('mailtype')));
-	        $messages_table->add_header('level',Q($this->gettext('spamlevel')));
+	        $messages_table->add_header('release',rcube_utils::rep_specialchars_output($this->gettext('release'), 'html', 'strict', true));
+	        $messages_table->add_header('delete',rcube_utils::rep_specialchars_output($this->gettext('delete'), 'html', 'strict', true));
+	        $messages_table->add_header('received',rcube_utils::rep_specialchars_output($this->gettext('received'), 'html', 'strict', true));
+	        $messages_table->add_header('subject',rcube_utils::rep_specialchars_output($this->gettext('subject'), 'html', 'strict', true));
+	        $messages_table->add_header('sender',rcube_utils::rep_specialchars_output($this->gettext('sender'), 'html', 'strict', true));
+	        $messages_table->add_header('type',rcube_utils::rep_specialchars_output($this->gettext('mailtype'), 'html', 'strict', true));
+	        $messages_table->add_header('level',rcube_utils::rep_specialchars_output($this->gettext('spamlevel'), 'html', 'strict', true));
 		}
 		// Create output : table : rows
         foreach ($quarantines as $key => $value) {
@@ -395,21 +395,21 @@ class amacube extends rcube_plugin
 	        	if ($key >= $pagination['start'] && $key < $pagination['stop']) {
 		            $messages_table->add('release',$this->_show_radio('rel_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_rel_'.$quarantines[$key]['id']));
 		            $messages_table->add('delete',$this->_show_radio('del_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_del_'.$quarantines[$key]['id']));
-		            $messages_table->add('date',Q(date('Y-m-d H:i:s',$quarantines[$key]['received'])));
-		            $messages_table->add('subject',Q($quarantines[$key]['subject']));
-		            $messages_table->add('sender',Q($quarantines[$key]['sender']));
-		            $messages_table->add('type',Q($this->gettext('content_decode_'.$quarantines[$key]['content'])));
-		            $messages_table->add('level',Q($quarantines[$key]['level']));
+		            $messages_table->add('date',rcube_utils::rep_specialchars_output(date('Y-m-d H:i:s',$quarantines[$key]['received']), 'html', 'strict', true));
+		            $messages_table->add('subject',rcube_utils::rep_specialchars_output($quarantines[$key]['subject'], 'html', 'strict', true));
+		            $messages_table->add('sender',rcube_utils::rep_specialchars_output($quarantines[$key]['sender'], 'html', 'strict', true));
+		            $messages_table->add('type',rcube_utils::rep_specialchars_output($this->gettext('content_decode_'.$quarantines[$key]['content']), 'html', 'strict', true));
+		            $messages_table->add('level',rcube_utils::rep_specialchars_output($quarantines[$key]['level'], 'html', 'strict', true));
 	        	}        		
         	} else {
 				$string 			= '<tr>';
 				$string				.= '<td class="release">'.$this->_show_radio('rel_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_rel_'.$quarantines[$key]['id']).'</td>';
 				$string				.= '<td class="delete">'.$this->_show_radio('del_'.$quarantines[$key]['id'],$quarantines[$key]['id'],'_del_'.$quarantines[$key]['id']).'</td>';
-				$string				.= '<td class="date">'.Q(date('Y-m-d H:i:s',$quarantines[$key]['received'])).'</td>';
-				$string				.= '<td class="subject">'.Q($quarantines[$key]['subject']).'</td>';
-				$string				.= '<td class="sender">'.Q($quarantines[$key]['sender']).'</td>';
-				$string				.= '<td class="type">'.Q($this->gettext('content_decode_'.$quarantines[$key]['content'])).'</td>';
-				$string				.= '<td class="level">'.Q($quarantines[$key]['level']).'</td>';
+				$string				.= '<td class="date">'.rcube_utils::rep_specialchars_output(date('Y-m-d H:i:s',$quarantines[$key]['received']), 'html', 'strict', true).'</td>';
+				$string				.= '<td class="subject">'.rcube_utils::rep_specialchars_output($quarantines[$key]['subject'], 'html', 'strict', true).'</td>';
+				$string				.= '<td class="sender">'.rcube_utils::rep_specialchars_output($quarantines[$key]['sender'], 'html', 'strict', true).'</td>';
+				$string				.= '<td class="type">'.rcube_utils::rep_specialchars_output($this->gettext('content_decode_'.$quarantines[$key]['content']), 'html', 'strict', true).'</td>';
+				$string				.= '<td class="level">'.rcube_utils::rep_specialchars_output($quarantines[$key]['level'], 'html', 'strict', true).'</td>';
 				$string				.= '</tr>';
 				$output[]			= $string;
         	}
@@ -497,11 +497,11 @@ class amacube extends rcube_plugin
 	function feedback() {
 		// Send first error or feedbacks to client
 		if (!empty($this->rc->amacube->errors)) {
-			$this->rc->output->command('display_message', Q($this->gettext($this->rc->amacube->errors[0])), 'error');
+			$this->rc->output->command('display_message', rcube_utils::rep_specialchars_output($this->gettext($this->rc->amacube->errors[0]), 'html', 'strict', true), 'error');
 		} elseif (!empty($this->rc->amacube->feedback)) {
 			foreach ($this->rc->amacube->feedback as $feed) {
 				if (!empty($feed)) {
-					$this->rc->output->command('display_message', Q($this->gettext($feed['message'])), $feed['type']);
+					$this->rc->output->command('display_message', rcube_utils::rep_specialchars_output($this->gettext($feed['message']), 'html', 'strict', true), $feed['type']);
 				}
 			}
 		}
