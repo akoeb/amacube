@@ -79,7 +79,7 @@ class AmavisQuarantine extends AmacubeAbstract
 		// Error check
         if ($error = $this->db_conn->is_error()) {
 			$this->rc->amacube->errors[] = 'db_query_error';
-			write_log('errors','AMACUBE: Database query error: '.$error);
+			rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 			return false;
 		}
         // Write the first result line to settings array
@@ -107,7 +107,7 @@ class AmavisQuarantine extends AmacubeAbstract
         if (!is_resource($this->db_conn)) {
             if (!$this->init_db()) { return false; }
         }
-        //write_log('errors','AMACUBE: Delete: '.implode(',',$mails));
+        //rcube::write_log('errors','AMACUBE: Delete: '.implode(',',$mails));
 		
         if (is_array($mails)) {
  	        if (count($mails) < 1) { return true; }
@@ -118,7 +118,7 @@ class AmavisQuarantine extends AmacubeAbstract
 				// Error check
 		        if ($error = $this->db_conn->is_error()) {
 					$this->rc->amacube->errors[] = 'db_delete_error';
-					write_log('errors','AMACUBE: Delete: Database error: '.$error);
+					rcube::write_log('errors','AMACUBE: Delete: Database error: '.$error);
 				}
 	        }
 		}
@@ -136,7 +136,7 @@ class AmavisQuarantine extends AmacubeAbstract
         if (!is_resource($this->db_conn)) {
         	if (!$this->init_db()) { return false; }
 		}
-        //write_log('errors','AMACUBE: Release: '.implode(',',$mails));
+        //rcube::write_log('errors','AMACUBE: Release: '.implode(',',$mails));
         if (is_array($mails)) {
 			if (count($mails) <= 0) { return true; }
 	        // Check mail_ids and secret_ids from database
@@ -146,7 +146,7 @@ class AmavisQuarantine extends AmacubeAbstract
 			// Error check
 	        if ($error = $this->db_conn->is_error()) {
 				$this->rc->amacube->errors[] = 'db_query_error';
-				write_log('errors','AMACUBE: Database query error: '.$error);
+				rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 				return false;
 			}
 	        // Create array of commands to submit to amavis release
@@ -161,7 +161,7 @@ class AmavisQuarantine extends AmacubeAbstract
 	            $command 	.= "\r\n";
 	            $commands[$res_array['mail_id']] = $command;
 	        }
-        	//write_log('errors','AMACUBE: Release: Command array: '.implode(',',str_replace("\r\n","_CR_NL_",$commands)));
+        	//rcube::write_log('errors','AMACUBE: Release: Command array: '.implode(',',str_replace("\r\n","_CR_NL_",$commands)));
 	        $success_ids 	= array();
 	        $error_ids 		= array();
 
@@ -192,21 +192,21 @@ class AmavisQuarantine extends AmacubeAbstract
 	                else {
 						// Error check
 						$this->rc->amacube->errors[] = $error = 'release_error';
-						write_log('errors','AMACUBE: Release: Socket write error');
+						rcube::write_log('errors','AMACUBE: Release: Socket write error');
 	                }
-	                //write_log('errors','AMACUBE: Amavis said: '.str_replace("\r\n","_CR_NL_",$answer));
+	                //rcube::write_log('errors','AMACUBE: Amavis said: '.str_replace("\r\n","_CR_NL_",$answer));
 	            }
 	            fclose ($fp);
 	        } else {
 				// Error check
 				$this->rc->amacube->errors[] = $error = 'release_error';
-	            write_log('errors',"AMACUBE: Release: Socket open error: $errstr ($errno)\n");
+	            rcube::write_log('errors',"AMACUBE: Release: Socket open error: $errstr ($errno)\n");
 	        }
 	        $this->delete($success_ids);
 	        if (count($error_ids) > 0) {
 				// Error check
 				$this->rc->amacube->errors[] = $error = 'release_error';
-	            write_log('errors','AMACUBE: Release: Error responses: '. http_build_query($error_ids));
+	            rcube::write_log('errors','AMACUBE: Release: Error responses: '. http_build_query($error_ids));
 	        }
 			if ($error) { return false; }
 	        return count($mails);

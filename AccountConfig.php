@@ -55,7 +55,7 @@ class AccountConfig extends AmacubeAbstract
 			        $res = $this->db_conn->query($query, $this->user_email);
 			        if ($error = $this->db_conn->is_error()) {
 						$this->rc->amacube->errors[] = 'db_query_error';
-						write_log('errors','AMACUBE: Database query error: '.$error);
+						rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 						return false;
 					}
 			        if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
