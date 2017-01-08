@@ -154,7 +154,7 @@ class AmavisConfig extends AmacubeAbstract
 		// Return false on errors
         if (!empty($errors)) {
         	$this->rc->amacube->errors[] = 'db_policy_error';
-			write_log('errors',"AMACUBE: Database policy error: ".implode(',',$errors));
+			rcube::write_log('errors',"AMACUBE: Database policy error: ".implode(',',$errors));
         	return false;
 		}
 		// Return true
@@ -192,7 +192,7 @@ class AmavisConfig extends AmacubeAbstract
 		// Error check
         if ($error = $this->db_conn->is_error()) {
 			$this->rc->amacube->errors[] = 'db_query_error';
-			write_log('errors','AMACUBE: Database query error: '.$error);
+			rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 		}
 		// Get record for user and map policy config
         if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
@@ -260,7 +260,7 @@ class AmavisConfig extends AmacubeAbstract
 		// Error check
         if ($error = $this->db_conn->is_error()) {
 			$this->rc->amacube->errors[] = 'db_query_error';
-			write_log('errors','AMACUBE: Database query error: '.$error);
+			rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 			return false;
 		}
         // Check for user on insert policy
@@ -269,7 +269,7 @@ class AmavisConfig extends AmacubeAbstract
             // Error check
             if (empty($this->policy_pk)) {
             	$this->rc->amacube->errors[] = 'db_query_error';
-				write_log('errors','AMACUBE: Database query error: '.$this->db_conn->is_error());
+				rcube::write_log('errors','AMACUBE: Database query error: '.$this->db_conn->is_error());
 				return false;
             }
 			// Check for user
@@ -277,7 +277,7 @@ class AmavisConfig extends AmacubeAbstract
 			// Error check
 	        if ($error = $this->db_conn->is_error()) {
 				$this->rc->amacube->errors[] = 'db_query_error';
-				write_log('errors','AMACUBE: Database query error: '.$error);
+				rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 				return false;
 			}
             if ($res && ($res_array = $this->db_conn->fetch_assoc($res))) {
@@ -292,7 +292,7 @@ class AmavisConfig extends AmacubeAbstract
 			// Error check
 	        if ($error = $this->db_conn->is_error()) {
 				$this->rc->amacube->errors[] = 'db_query_error';
-				write_log('errors','AMACUBE: Database query error: '.$error);
+				rcube::write_log('errors','AMACUBE: Database query error: '.$error);
 				return false;
 			}
         }
