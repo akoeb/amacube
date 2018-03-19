@@ -7,8 +7,8 @@
 This file is part of the amacube Roundcube plugin
 Copyright (C) 2013, Alexander Köb <nerdkram@koeb.me>
 
-Licensed under the GNU General Public License version 3. 
-See the COPYING file for a full license statement.          
+Licensed under the GNU General Public License version 3.
+See the COPYING file for a full license statement.
 
 */
 include_once('AmacubeAbstract.php');
@@ -25,9 +25,9 @@ class AccountConfig extends AmacubeAbstract
         parent::__construct($db_config);
 		// Check config
 		$this->initialized = $this->get_account();
-		
+
     }
-	
+
 	function get_account() {
 
 		$table_account 							= $this->rc->config->get('amacube_accounts_db_account_table');
@@ -78,10 +78,10 @@ class AccountConfig extends AmacubeAbstract
 						return true;
 			        }
     			}
-    		}				
+    		}
 		}
     	return false;
 	}
-	
+
 }
 ?>

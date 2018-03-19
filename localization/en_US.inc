@@ -36,6 +36,7 @@ $labels['spam_kill_level_info'] = 'Mails with a spam level over this are conside
 $labels['spam_kill_level_error'] = 'Spam level must be an integer number between -20 and 20';
 $labels['verification_error'] = 'Verification Error in the amavis policy, not saved!';
 $labels['write_error'] = 'An error occurred writing your policy to the database';
+$labels['config_saved'] = 'Your new settings have been stored successfully.';
 $labels['successfully saved'] = 'Your new settings have been stored successfully.';
 $labels['quarantine_no_result'] = 'No quarantined messages found';
 $labels['quarantine_pagetitle'] = 'Quarantined emails';
@@ -83,6 +84,7 @@ $labels['to'] = 'to';
 $labels['of'] = 'of';
 $labels['success_release'] = 'Selected messages have been released.';
 $labels['success_delete'] = 'Selected messages have been deleted.';
+$labels['recipient'] = 'Recipient';
 
 $labels['db_conect_error'] = 'Database connection error.';
 $labels['db_query_error'] = 'Database query error.';

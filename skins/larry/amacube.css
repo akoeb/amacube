@@ -30,23 +30,34 @@
 #pluginbody.quarantine-pluginbody #messagelist thead tr td {
 	padding:7px;
 }
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.release,
 #pluginbody.quarantine-pluginbody #messagelist tr td.release {
-	width:100px;
+	width:40px;
 	text-align:center;
 }
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.delete,
 #pluginbody.quarantine-pluginbody #messagelist tr td.delete {
-	width:100px;
+	width:40px;
 	text-align:center;
 }
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.received,
 #pluginbody.quarantine-pluginbody #messagelist tr td.received {
 	width:150px;
 }
 #pluginbody.quarantine-pluginbody #messagelist tr td.sender {
-	width:250px;
+	width:200px;
 }
+#pluginbody.quarantine-pluginbody #messagelist tr td.recipient {
+	width:200px;
+}
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.type,
 #pluginbody.quarantine-pluginbody #messagelist tr td.type {
 	width:100px;
 }
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.level,
 #pluginbody.quarantine-pluginbody #messagelist tr td.level {
 	width:100px;
 }

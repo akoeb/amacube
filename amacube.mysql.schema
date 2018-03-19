@@ -3,9 +3,9 @@ following structure:
 
 CREATE TABLE IF NOT EXISTS `mailbox` (
   `email` varbinary(255) NOT NULL,
-  `catchall` int(1) NOT NULL DEFAULT '1',
+  `catchall` int(1) NOT NULL DEFAULT '0',
   `filter` int(1) NOT NULL DEFAULT '1'
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 
 You can put this table in your existing amavis database, or recreate a new one.
 

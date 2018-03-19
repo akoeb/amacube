@@ -42,4 +42,6 @@ $rcmail_config['amacube_auto_create_user'] = true;
 // Default Quarantine Page Size
 $rcmail_config['mail_pagesize'] = 25;
 
+// Array of account names (e-mail addresses) who get the site-wide quarantine list, for all mailboxes
+$rcmail_config['amacube_amavis_admins'] = array();
 ?>

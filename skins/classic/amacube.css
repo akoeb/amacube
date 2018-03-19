@@ -41,26 +41,38 @@
 #pluginbody.quarantine-pluginbody table.messagelist thead tr td {
 	padding-left:0px;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.release {
-	width:100px;
-	text-align:center;
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.release,
+#pluginbody.quarantine-pluginbody #messagelist tr td.release {
+        width:40px;
+        text-align:center;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.delete {
-	width:100px;
-	text-align:center;
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.delete,
+#pluginbody.quarantine-pluginbody #messagelist tr td.delete {
+        width:40px;
+        text-align:center;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.received {
-	width:150px;
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.received,
+#pluginbody.quarantine-pluginbody #messagelist tr td.received {
+        width:150px;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.sender {
-	width:250px;
+#pluginbody.quarantine-pluginbody #messagelist tr td.sender {
+        width:200px;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.type {
-	width:100px;
+#pluginbody.quarantine-pluginbody #messagelist tr td.recipient {
+        width:200px;
 }
-#pluginbody.quarantine-pluginbody table.messagelist tr td.level {
-	width:100px;
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.type,
+#pluginbody.quarantine-pluginbody #messagelist tr td.type {
+        width:100px;
 }
+
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.level,
+#pluginbody.quarantine-pluginbody #messagelist tr td.level {
+        width:100px;
+}
+
 #pluginbody.quarantine-pluginbody #messagelistfooter #countcontrols {
     font-size: 11px;
     position: absolute;

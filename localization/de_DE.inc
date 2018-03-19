@@ -39,6 +39,7 @@ $labels['spam_kill_level_info'] = 'Emails mit einem Spamwert in dieser Höhe ode
 $labels['spam_kill_level_error'] = 'Der Wert für Spammails muss eine ganze Zahl zwischen -20 und 20 sein.';
 $labels['verification_error'] = 'Die Amaviseinstellungen enthielten einen Fehler und konnten nicht gespeichert werden.';
 $labels['write_error'] = 'Es kam zu einem Fehler beim Abspeichern der Amaviseinstellungen';
+$labels['config_saved'] = 'Die Amaviseinstellungen für diesen Benutzer wurden erfolgreich abgespeichert.';
 $labels['successfully saved'] = 'Die Amaviseinstellungen für diesen Benutzer wurden erfolgreich abgespeichert.';
 $labels['quarantine heading'] = 'Quarantäne E-Mails';
 $labels['quarantine_no_result'] = 'Es konnten keine E-Mails in der Quarantäne gefunden werden';
@@ -87,14 +88,10 @@ $labels['to'] = 'an';
 $labels['of'] = 'von';
 $labels['success_release'] = 'Ausgewählte Nachrichten wurden freigegeben.';
 $labels['success_delete'] = 'Ausgewählte Nachrichten wurden gelöscht.';
+$labels['recipient'] = 'Empfänger';
 
 $labels['db_conect_error'] = 'Datenbankverbindungsfehler.';
 $labels['db_query_error'] = 'Datenbankabfragefehler.';
 $labels['db_policy_error'] = 'Datenbankrichtlinienfehler.';
 $labels['spam_quarantine_cutoff_level_error'] = 'Der Wert für zulöschende Spammails muss eine ganze Zahl zwischen 20 und 1001 sein.';
-
-$labels['amavissettings_pagetitle'] = 'Amavis Einstellungen';
-
-
-
 ?>
