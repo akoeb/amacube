@@ -45,11 +45,13 @@
 #pluginbody.quarantine-pluginbody #messagelist tr td.received {
 	width:150px;
 }
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.sender,
 #pluginbody.quarantine-pluginbody #messagelist tr td.sender {
-	width:200px;
+        width:200px;
 }
+#pluginbody.quarantine-pluginbody #messagelist thead tr th.recipient,
 #pluginbody.quarantine-pluginbody #messagelist tr td.recipient {
-	width:200px;
+        width:200px;
 }
 
 #pluginbody.quarantine-pluginbody #messagelist thead tr th.type,

@@ -6,6 +6,7 @@ class amacube extends rcube_plugin
     public 	$task 		= '?(?!login|logout).*';
     private	$rc;
     private	$amacube;
+    public  $ama_admin;
 
     function init() {
    	$this->rc = rcmail::get_instance();
@@ -45,6 +46,13 @@ class amacube extends rcube_plugin
     				$this->rc->amacube->feedback[] = array('type' => 'confirmation', 'message' => 'policy_default_message');
 			}
 		}
+
+        $this->ama_admin = false;
+        foreach ( $this->rc->config->get('amacube_amavis_admins') as $s_admin ) {
+            if ( strtolower($s_admin) == strtolower($this->rc->user->data['username']) ) {
+                $this->ama_admin = true;
+            }
+        }
 		// Add localization
         $this->add_texts('localization/', true);
         // Register tasks & actions
@@ -390,18 +398,26 @@ class amacube extends rcube_plugin
 		// Create output
 		if (!$ajax) {
 	        // Create output : header table
-	        $messages_table = new html_table(array(
-	        	'cols' 				=> 8,
-	        	'id'				=> 'messagelist',
-	        	'class' 			=> 'records-table messagelist sortheader fixedheader quarantine-messagelist'
-			));
+            if ( $this->ama_admin === true ) {
+                $messages_table = new html_table(array(
+                'cols' 				=> 8,
+                'id'				=> 'messagelist',
+                'class' 			=> 'records-table messagelist sortheader fixedheader quarantine-messagelist'
+                ));
+            } else {
+                $messages_table = new html_table(array(
+                'cols' 				=> 7,
+                'id'				=> 'messagelist',
+                'class' 			=> 'records-table messagelist sortheader fixedheader quarantine-messagelist'
+                ));
+            }
 	        // Create output : table : headers
 	        $messages_table->add_header('release',rcube_utils::rep_specialchars_output($this->gettext('release'), 'html', 'strict', true));
 	        $messages_table->add_header('delete',rcube_utils::rep_specialchars_output($this->gettext('delete'), 'html', 'strict', true));
 	        $messages_table->add_header('received',rcube_utils::rep_specialchars_output($this->gettext('received'), 'html', 'strict', true));
 	        $messages_table->add_header('subject',rcube_utils::rep_specialchars_output($this->gettext('subject'), 'html', 'strict', true));
 	        $messages_table->add_header('sender',rcube_utils::rep_specialchars_output($this->gettext('sender'), 'html', 'strict', true));
-	        $messages_table->add_header('recipient',rcube_utils::rep_specialchars_output($this->gettext('recipient'), 'html', 'strict', true));
+if ( $this->ama_admin === true ) { $messages_table->add_header('recipient',rcube_utils::rep_specialchars_output($this->gettext('recipient'), 'html', 'strict', true)); }
 	        $messages_table->add_header('type',rcube_utils::rep_specialchars_output($this->gettext('mailtype'), 'html', 'strict', true));
 	        $messages_table->add_header('level',rcube_utils::rep_specialchars_output($this->gettext('spamlevel'), 'html', 'strict', true));
 		}
@@ -414,7 +430,7 @@ class amacube extends rcube_plugin
 		            $messages_table->add('date',rcube_utils::rep_specialchars_output(date('Y-m-d H:i:s',$quarantines[$key]['received']), 'html', 'strict', true));
 		            $messages_table->add('subject', $quarantines[$key]['subject'] ? rcube_utils::rep_specialchars_output($quarantines[$key]['subject'], 'html', 'strict', true) : $this->gettext('no subject'));
 		            $messages_table->add('sender',rcube_utils::rep_specialchars_output($quarantines[$key]['sender'], 'html', 'strict', true));
-		            $messages_table->add('recipient',rcube_utils::rep_specialchars_output($quarantines[$key]['recipient'], 'html', 'strict', true));
+if ( $this->ama_admin === true ) { $messages_table->add('recipient',rcube_utils::rep_specialchars_output($quarantines[$key]['recipient'], 'html', 'strict', true)); }
 		            $messages_table->add('type',rcube_utils::rep_specialchars_output($this->gettext('content_decode_'.$quarantines[$key]['content']), 'html', 'strict', true));
 		            $messages_table->add('level',rcube_utils::rep_specialchars_output($quarantines[$key]['level'], 'html', 'strict', true));
 	        	}
@@ -425,7 +441,7 @@ class amacube extends rcube_plugin
 				$string				.= '<td class="date">'.rcube_utils::rep_specialchars_output(date('Y-m-d H:i:s',$quarantines[$key]['received']), 'html', 'strict', true).'</td>';
 				$string				.= '<td class="subject">'. $quarantines[$key]['subject'] ? rcube_utils::rep_specialchars_output($quarantines[$key]['subject'], 'html', 'strict', true) : $this->gettext('no subject') .'</td>';
 				$string				.= '<td class="sender">'.rcube_utils::rep_specialchars_output($quarantines[$key]['sender'], 'html', 'strict', true).'</td>';
-				$string				.= '<td class="recipient">'.rcube_utils::rep_specialchars_output($quarantines[$key]['recipient'], 'html', 'strict', true).'</td>';
+if ( $this->ama_admin === true ) { $string .= '<td class="recipient">'.rcube_utils::rep_specialchars_output($quarantines[$key]['recipient'], 'html', 'strict', true).'</td>'; }
 				$string				.= '<td class="type">'.rcube_utils::rep_specialchars_output($this->gettext('content_decode_'.$quarantines[$key]['content']), 'html', 'strict', true).'</td>';
 				$string				.= '<td class="level">'.rcube_utils::rep_specialchars_output($quarantines[$key]['level'], 'html', 'strict', true).'</td>';
 				$string				.= '</tr>';
