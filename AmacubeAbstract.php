@@ -7,8 +7,8 @@
 This file is part of the amacube Roundcube plugin
 Copyright (C) 2013, Alexander Köb <nerdkram@koeb.me>
 
-Licensed under the GNU General Public License version 3. 
-See the COPYING file for a full license statement.          
+Licensed under the GNU General Public License version 3.
+See the COPYING file for a full license statement.
 
 */
 class AmacubeAbstract {
@@ -17,7 +17,7 @@ class AmacubeAbstract {
 
     private 	$db_config; 					// Store DB config
     protected 	$db_conn;   					// DB connection
-    
+
     public 		$errors			= array();		// Store errors
 
     // Constructor
@@ -56,7 +56,7 @@ class AmacubeAbstract {
     }
 
     // Return the last database error
-    function db_error() 
+    function db_error()
     {
         if (!$this->db_conn) {
             return false;

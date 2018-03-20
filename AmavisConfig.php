@@ -7,8 +7,8 @@
 This file is part of the amacube Roundcube plugin
 Copyright (C) 2013, Alexander Köb <nerdkram@koeb.me>
 
-Licensed under the GNU General Public License version 3. 
-See the COPYING file for a full license statement.          
+Licensed under the GNU General Public License version 3.
+See the COPYING file for a full license statement.
 
 */
 include_once('AmacubeAbstract.php');
@@ -38,17 +38,17 @@ class AmavisConfig extends AmacubeAbstract
         'bypass_header_checks' 			=> false,	// bool
 //        'spam_modifies_subj' 			=> false,  	// bool
         'spam_tag_level' 				=> -999,    // float
-        'spam_tag2_level' 				=> 6,       // float
-        'spam_tag3_level' 				=> 12,      // float
-        'spam_kill_level' 				=> 12,      // float
-        'spam_dsn_cutoff_level' 		=> 20,  	// float
+        'spam_tag2_level' 				=> 7,       // float
+        'spam_tag3_level' 				=> 7,      // float
+        'spam_kill_level' 				=> 7,      // float
+        'spam_dsn_cutoff_level' 		=> 10,  	// float
         'spam_quarantine_cutoff_level' 	=> 20, 		// float
- 
+
         'virus_quarantine_to' 			=> true,    // string 'sql:', but treated as boolean
-        'spam_quarantine_to' 			=> false,   // string 'sql:', but treated as boolean
-        'banned_quarantine_to' 			=> false,	// string 'sql:', but treated as boolean
+        'spam_quarantine_to' 			=> true,   // string 'sql:', but treated as boolean
+        'banned_quarantine_to' 			=> true,	// string 'sql:', but treated as boolean
         'bad_header_quarantine_to' 		=> true,   	// string 'sql:', but treated as boolean
-        
+
         'unchecked_quarantine_to' 		=> false,   // string 'sql:', but treated as boolean
         'clean_quarantine_to' 			=> false,   // string 'sql:', but treated as boolean
         'archive_quarantine_to' 		=> false,   // string 'sql:', but treated as boolean
@@ -76,7 +76,7 @@ class AmavisConfig extends AmacubeAbstract
         'clean_quarantine_to',
         'archive_quarantine_to'
 	);
-    /* 
+    /*
     The following settings are unused, I added the lines for later implementation if needed
 
     addr_extension_virus; // unused
@@ -118,7 +118,7 @@ class AmavisConfig extends AmacubeAbstract
         	$this->verify_policy_array();
         }
     }
-    
+
     // Method for verifying policy config
     function verify_policy_array($array = null)
     {
@@ -159,7 +159,7 @@ class AmavisConfig extends AmacubeAbstract
 		}
 		// Return true
 		return true;
-		
+
     }
 
 
@@ -173,12 +173,12 @@ class AmavisConfig extends AmacubeAbstract
         } else {
 	        // Write policy array to instance variable
 	        $this->policy_setting = $array;
-			return true;        	
+			return true;
         }
     }
 
     // read amavis settings from database
-    function read_from_db() 
+    function read_from_db()
     {
         if (!is_resource($this->db_conn)) {
         	if (!$this->init_db()) { return false; }
@@ -186,7 +186,7 @@ class AmavisConfig extends AmacubeAbstract
         // Get query for user and policy config
         $query = "SELECT users.id as user_id, users.priority, users.email, users.fullname, policy.*
             FROM users, policy
-            WHERE users.policy_id = policy.id 
+            WHERE users.policy_id = policy.id
             AND users.email = ? ";
         $res = $this->db_conn->query($query, $this->user_email);
 		// Error check
@@ -300,19 +300,19 @@ class AmavisConfig extends AmacubeAbstract
     }
     // Convenience methods
     function is_delivery($type,$method) {
-    	
+
 		if ($type == 'banned') { $lover = $type.'_files_lover'; }
 		else { $lover = $type.'_lover'; }
-		
+
 		if ($method == 'deliver' && $this->policy_setting[$lover]) { return true; }
 		if ($method == 'quarantine' && !$this->policy_setting[$lover] && $this->policy_setting[$type.'_quarantine_to']) { return true; }
 		if ($method == 'discard' && !$this->policy_setting[$lover] && !$this->policy_setting[$type.'_quarantine_to']) { return true; }
 		return false;
-		
+
     }
-	
+
 	function is_active($type) {
-		
+
 		if ($type == 'virus' || $type == 'spam') {
 			return !$this->policy_setting['bypass_'.$type.'_checks'];
 		}
@@ -321,9 +321,9 @@ class AmavisConfig extends AmacubeAbstract
 
     // Mapping function for internal representation -> database content
     function map_to_db($key, $value)
-    {                
+    {
         $retval = null;
-        // Map boolean settings to Y/N 
+        // Map boolean settings to Y/N
         if (in_array($key, self::$boolean_settings)) {
             if ($value) { $retval = 'Y'; }
             else { $retval = 'N'; }
@@ -339,11 +339,11 @@ class AmavisConfig extends AmacubeAbstract
         return $retval;
     }
 
-    // Mapping function for internal representation <- database content  
+    // Mapping function for internal representation <- database content
     function map_from_db($key, $value)
     {
         $retval = null;
-        // Map boolean settings from Y/N 
+        // Map boolean settings from Y/N
         if (in_array($key, self::$boolean_settings)) {
             if (!empty($value) && $value == 'Y') { $retval = true; }
             else { $retval = false; }

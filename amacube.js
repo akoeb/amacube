@@ -104,3 +104,4 @@ if (window.rcmail) {
 		}
    });
 }
+
